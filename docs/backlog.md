@@ -37,30 +37,6 @@ someone's head. Newest observations at the top of each section.
 
 ## Technical
 
-- **A machine never reads its own log, so a reset loses its own history.**
-  `PeerSync.pull` skips the device it runs on, which is right while the index is
-  intact and wrong the moment it is not: everything this Mac ever wrote still
-  sits in its own segments, readable, and is never read again. The other Mac
-  keeps those entries and goes on showing them; the one that wrote them does
-  not. README and `development.md` both say the log is enough to rebuild the
-  index from scratch — true only of the other machines' half of it. Reading
-  one's own segments when the index comes up empty would close the gap;
-  `merge(entry:)` is already idempotent, so nothing would arrive twice.
-
-- **A devices folder that cannot be listed looks exactly like an empty one.**
-  `DeviceLogReader.peers` swallows the error with `?? []`. The `.skipsHiddenFiles`
-  bug lived five days behind that silence: two Macs writing into the same folder,
-  neither ever saying that it had read nothing from the other. A record that
-  cannot be applied now reaches a banner as an unreadable log, and the engine's
-  own errors are shown too; a listing that failed belongs on the same route.
-
-- **A Mac that cannot read its own manifest starts counting at one again.**
-  `DeviceLogWriter.init` treats an unreadable `manifest.json` as a first start —
-  a manifest iCloud has evicted on a Mac that was off for months would do it —
-  and new records then reuse sequence numbers the other Mac has already passed,
-  so it never reads them. A coordinated read (which waits for the download), or
-  refusing to write until the manifest is here, would close it.
-
 - **FSEvents batches are handed to the engine in unstructured tasks**, one per
   callback, and nothing guarantees they run in the order they were delivered.
   In practice a second apart; a serial hand-off (an `AsyncStream`) would make
@@ -69,7 +45,9 @@ someone's head. Newest observations at the top of each section.
 - **The identity lives in the index.** If `index.sqlite` cannot be opened it is
   deleted and rebuilt, and with it goes who this Mac is: the person onboards
   again, gets a new member id, and appears to the others as somebody new. Keeping
-  `LocalIdentity` beside the index, not inside it, would survive the reset.
+  `LocalIdentity` beside the index, not inside it, would survive the reset — and
+  the rebuilt index would then read this Mac's own log back as well, which
+  `PeerSync` already does for an empty index under a known device id.
 
 - **The thumbnail cache on disk is never pruned.** Keyed by file and date now, so
   every saved version of an image leaves a small PNG behind.

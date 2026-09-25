@@ -23,19 +23,43 @@ public actor DeviceLogWriter {
                                        underlying: error.localizedDescription)
         }
 
+        // A manifest that is there but cannot be read is not a first start. An
+        // evicted one on a Mac that was offline for months used to be taken for
+        // one: numbering began at one again, the other Mac had long passed those
+        // numbers, and it never read a single new record. Nothing is written
+        // until the real one is here.
         let manifestURL = dir.appending(path: LogLayout.manifestName)
-        if let data = try? Data(contentsOf: manifestURL),
-           var existing = try? JSONCoding.decoder().decode(LogManifest.self, from: data) {
-            existing.member = identity.member
-            existing.deviceName = identity.deviceName
-            manifest = existing
-        } else {
-            manifest = LogManifest(deviceID: identity.deviceID, deviceName: identity.deviceName,
-                                   member: identity.member, updatedAt: clock.now)
+        var loaded = LogManifest(deviceID: identity.deviceID, deviceName: identity.deviceName,
+                                 member: identity.member, updatedAt: clock.now)
+        if FileManager.default.fileExists(atPath: manifestURL.path(percentEncoded: false)) {
+            DeviceLogReader.ensureDownloaded(manifestURL)
+            let data: Data
+            do {
+                data = try Data(contentsOf: manifestURL)
+            } catch {
+                throw LogError.ownLogUnavailable(path: manifestURL.path(percentEncoded: false),
+                                                 underlying: error.localizedDescription)
+            }
+            // Bytes that do not decode are a broken file of our own, and the
+            // segments say everything it did. They are read in full below.
+            if let existing = try? JSONCoding.decoder().decode(LogManifest.self, from: data) {
+                loaded = existing
+            }
+        }
+        loaded.member = identity.member
+        loaded.deviceName = identity.deviceName
+
+        // The segments are written before the manifest, so after a crash between
+        // the two they are ahead of it. They are what decides which numbers are
+        // spent.
+        let before = loaded
+        try Self.reconcile(&loaded, in: dir, manifestIsTrusted: loaded.lastSequence > 0)
+        manifest = loaded
+        if loaded.segments != before.segments || loaded.lastSequence != before.lastSequence {
+            try? Self.write(loaded, to: dir)
         }
 
-        currentSegmentIndex = manifest.segments.count
-        if currentSegmentIndex == 0 { currentSegmentIndex = 1 }
+        currentSegmentIndex = manifest.segments.last.flatMap { LogLayout.segmentIndex($0.name) } ?? 1
         let segURL = dir.appending(path: LogLayout.segmentName(currentSegmentIndex))
         currentSegmentBytes = (try? FileManager.default
             .attributesOfItem(atPath: segURL.path(percentEncoded: false))[.size] as? Int) .flatMap { $0 } ?? 0
@@ -161,6 +185,10 @@ public actor DeviceLogWriter {
 
     private func writeManifest(to dir: URL) throws {
         manifest.updatedAt = clock.now
+        try Self.write(manifest, to: dir)
+    }
+
+    private static func write(_ manifest: LogManifest, to dir: URL) throws {
         let url = dir.appending(path: LogLayout.manifestName)
         do {
             let encoder = JSONCoding.encoder()
@@ -170,5 +198,72 @@ public actor DeviceLogWriter {
             throw LogError.notWritable(path: url.path(percentEncoded: false),
                                        underlying: error.localizedDescription)
         }
+    }
+
+    /// Brings the manifest up to what the segments on disk hold.
+    ///
+    /// Segments the manifest lists and has closed are taken at its word; on a
+    /// long log that is the difference between reading one file and reading all
+    /// of them. The last one it lists, and any it does not know, are read. When
+    /// the manifest was lost that is every segment, which is what a rebuild is.
+    ///
+    /// A half-written record at the end of the last segment is cut off. The next
+    /// append would land behind it and turn it into a broken line in the middle,
+    /// taking the first new record down with it — a gap the other Mac waits at
+    /// for good. Its number was never spent: the manifest is written after the
+    /// segment, and only whole records are counted.
+    ///
+    /// A segment that cannot be read stops the writer, with one exception: the
+    /// last one a readable manifest lists. The manifest already knows it, and an
+    /// evicted file on a Mac that is offline is no reason to stop watching.
+    static func reconcile(_ manifest: inout LogManifest, in dir: URL,
+                          manifestIsTrusted: Bool) throws {
+        let names: [String]
+        do {
+            names = try FileManager.default.contentsOfDirectory(atPath: dir.path(percentEncoded: false))
+                .filter(LogLayout.isSegment).sorted()
+        } catch {
+            throw LogError.ownLogUnavailable(path: dir.path(percentEncoded: false),
+                                             underlying: error.localizedDescription)
+        }
+        let listed = Set(manifest.segments.map(\.name))
+        let lastListed = manifest.segments.last?.name
+        for name in names where !listed.contains(name) || name == lastListed {
+            let url = dir.appending(path: name)
+            DeviceLogReader.ensureDownloaded(url)
+            var data: Data
+            do {
+                data = try Data(contentsOf: url)
+            } catch where manifestIsTrusted && name == lastListed {
+                continue
+            } catch {
+                throw LogError.ownLogUnavailable(path: url.path(percentEncoded: false),
+                                                 underlying: error.localizedDescription)
+            }
+            if name == names.last, let last = data.last, last != 0x0A {
+                let keep = (data.lastIndex(of: 0x0A).map { $0 + 1 }) ?? data.startIndex
+                do {
+                    let handle = try FileHandle(forWritingTo: url)
+                    defer { try? handle.close() }
+                    try handle.truncate(atOffset: UInt64(keep - data.startIndex))
+                    try handle.synchronize()
+                } catch {
+                    throw LogError.notWritable(path: url.path(percentEncoded: false),
+                                               underlying: error.localizedDescription)
+                }
+                data = data[..<keep]
+            }
+            let sequences = DeviceLogReader.parse(data, after: 0).records.map(\.sequence)
+            guard let first = sequences.min(), let last = sequences.max() else { continue }
+            let segment = LogManifest.Segment(name: name, firstSequence: first, lastSequence: last,
+                                              recordCount: sequences.count)
+            if let index = manifest.segments.firstIndex(where: { $0.name == name }) {
+                manifest.segments[index] = segment
+            } else {
+                manifest.segments.append(segment)
+            }
+            manifest.lastSequence = max(manifest.lastSequence, last)
+        }
+        manifest.segments.sort { $0.name < $1.name }
     }
 }

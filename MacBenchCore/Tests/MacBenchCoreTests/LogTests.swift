@@ -172,6 +172,102 @@ struct LogTests {
         #expect(peer.manifest?.lastSequence == 2)
     }
 
+    /// An evicted manifest on a Mac that was offline, or one that is not
+    /// readable for any other reason, used to look like a first start: counting
+    /// began at one again, below where the other Mac's watermark already stood.
+    @Test("A manifest that cannot be read stops the writer instead of counting from one")
+    func unreadableManifestRefusesToWrite() async throws {
+        let root = try makeTempRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let identity = makeIdentity()
+        let first = try DeviceLogWriter(root: root, identity: identity)
+        try await first.append([sampleEntry(text: "a"), sampleEntry(text: "b")])
+
+        let manifest = LogLayout.deviceDirectory(in: root, device: identity.deviceID)
+            .appending(path: LogLayout.manifestName).path(percentEncoded: false)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: manifest)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: manifest) }
+        #expect(throws: LogError.self) { try DeviceLogWriter(root: root, identity: identity) }
+    }
+
+    @Test("A manifest that is gone or broken is rebuilt from the segments")
+    func lostManifestIsRebuilt() async throws {
+        for damage in ["deleted", "garbage"] {
+            let root = try makeTempRoot()
+            defer { try? FileManager.default.removeItem(at: root) }
+            let identity = makeIdentity()
+            let first = try DeviceLogWriter(root: root, identity: identity)
+            let filler = String(repeating: "x", count: 900)
+            for _ in 0..<300 { try await first.append([sampleEntry(text: filler)]) }
+
+            let manifest = LogLayout.deviceDirectory(in: root, device: identity.deviceID)
+                .appending(path: LogLayout.manifestName)
+            if damage == "deleted" {
+                try FileManager.default.removeItem(at: manifest)
+            } else {
+                try Data("{\"formatVersion\": 1, \"devi".utf8).write(to: manifest)
+            }
+
+            let second = try DeviceLogWriter(root: root, identity: identity)
+            #expect(await second.lastSequence == 300, "\(damage)")
+            try await second.append([sampleEntry(text: "danach")])
+
+            let peer = try #require(DeviceLogReader.peers(in: root).first)
+            #expect(peer.manifest?.segments.count ?? 0 > 1, "\(damage)")
+            let result = DeviceLogReader.read(peer: peer, after: 0)
+            #expect(result.records.map(\.sequence) == Array(1...301), "\(damage)")
+            #expect(result.isComplete, "\(damage)")
+        }
+    }
+
+    /// Records go to the segment first and the manifest after. A crash between
+    /// the two left a manifest behind its own records, and the next start
+    /// handed out their numbers a second time.
+    @Test("Records the manifest does not know about yet are not numbered twice")
+    func segmentsAheadOfManifest() async throws {
+        let root = try makeTempRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let identity = makeIdentity()
+        let first = try DeviceLogWriter(root: root, identity: identity)
+        try await first.append([sampleEntry(text: "a")])
+        let manifest = LogLayout.deviceDirectory(in: root, device: identity.deviceID)
+            .appending(path: LogLayout.manifestName)
+        let stale = try Data(contentsOf: manifest)
+        try await first.append([sampleEntry(text: "b"), sampleEntry(text: "c")])
+        try stale.write(to: manifest)
+
+        let second = try DeviceLogWriter(root: root, identity: identity)
+        #expect(await second.lastSequence == 3)
+        try await second.append([sampleEntry(text: "d")])
+        let result = DeviceLogReader.read(peer: DeviceLogReader.peers(in: root)[0], after: 0)
+        #expect(result.records.map(\.sequence) == [1, 2, 3, 4])
+        #expect(result.isComplete)
+    }
+
+    /// A power cut in the middle of a write leaves half a record. Appending
+    /// behind it made it a broken line in the middle, with the first new record
+    /// on the same line — lost, and a gap the other Mac would wait at for good.
+    @Test("Half a record left by a crash is cut off before the next append")
+    func partialTailIsCutBeforeAppending() async throws {
+        let root = try makeTempRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let identity = makeIdentity()
+        let first = try DeviceLogWriter(root: root, identity: identity)
+        try await first.append([sampleEntry(text: "a")])
+        let segment = LogLayout.deviceDirectory(in: root, device: identity.deviceID)
+            .appending(path: LogLayout.segmentName(1))
+        let handle = try FileHandle(forWritingTo: segment)
+        try handle.seekToEnd()
+        try handle.write(contentsOf: Data(#"{"v":1,"seq":2,"trunc"#.utf8))
+        try handle.close()
+
+        let second = try DeviceLogWriter(root: root, identity: identity)
+        try await second.append([sampleEntry(text: "b")])
+        let result = DeviceLogReader.read(peer: DeviceLogReader.peers(in: root)[0], after: 0)
+        #expect(result.records.map(\.sequence) == [1, 2])
+        #expect(result.isComplete, "\(result.unreadable)")
+    }
+
     @Test("Timestamps keep millisecond precision through the log")
     func timestampPrecision() throws {
         let date = Date(timeIntervalSince1970: 1_700_000_000.123)

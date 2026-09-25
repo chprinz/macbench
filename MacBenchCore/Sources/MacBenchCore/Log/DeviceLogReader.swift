@@ -39,10 +39,19 @@ public enum DeviceLogReader {
     /// exists to prevent: the other machine simply never appears, and nothing says
     /// why. A device folder is recognised by its name being a uuid, which is the
     /// only filter this needs.
-    public static func peers(in root: URL) -> [PeerLog] {
+    ///
+    /// A folder that cannot be listed throws rather than coming back empty: the
+    /// two look the same from here, and an empty one means "nobody else yet".
+    /// Only a folder that is not there at all is empty.
+    public static func listPeers(in root: URL) throws -> [PeerLog] {
         let devicesDir = LogLayout.devicesDirectory(in: root)
-        let contents = (try? FileManager.default.contentsOfDirectory(
-            at: devicesDir, includingPropertiesForKeys: nil)) ?? []
+        let contents: [URL]
+        do {
+            contents = try FileManager.default.contentsOfDirectory(
+                at: devicesDir, includingPropertiesForKeys: nil)
+        } catch CocoaError.fileReadNoSuchFile {
+            contents = []
+        }
         return contents.compactMap { url in
             guard let id = UUID(uuidString: url.lastPathComponent) else { return nil }
             let manifestURL = url.appending(path: LogLayout.manifestName)
@@ -52,6 +61,13 @@ public enum DeviceLogReader {
             return PeerLog(deviceID: id, directory: url, manifest: manifest)
         }
         .sorted { $0.deviceID.uuidString < $1.deviceID.uuidString }
+    }
+
+    /// `listPeers`, for the places that only want to know who else is here. A
+    /// listing that fails reaches the person through `PeerSync.pull`, which
+    /// reads the same folder on every pass.
+    public static func peers(in root: URL) -> [PeerLog] {
+        (try? listPeers(in: root)) ?? []
     }
 
     /// Reads a device's records with sequence greater than `after`.

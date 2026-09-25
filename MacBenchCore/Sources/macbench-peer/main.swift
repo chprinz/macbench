@@ -159,7 +159,7 @@ struct Peer {
     }
 
     func health(of project: Project) throws -> [String] {
-        try store.peers(for: project.id).map { peer in
+        try store.peers(for: project.id).filter { $0.deviceID != identity.deviceID }.map { peer in
             let who = try peer.memberID.flatMap(store.member(id:))?.name ?? peer.deviceName ?? "?"
             let read = "read \(peer.appliedSequence) of \(peer.claimedSequence) records"
             return "  \(who) (\(peer.deviceName ?? "unknown Mac")): \(read)"

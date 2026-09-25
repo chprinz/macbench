@@ -39,6 +39,12 @@ public enum LogLayout {
         String(format: "%06d.%@", index, segmentExtension)
     }
 
+    /// The number in a segment's name, which is the order it was written in.
+    public static func segmentIndex(_ name: String) -> Int? {
+        guard isSegment(name) else { return nil }
+        return Int(name.dropLast(segmentExtension.count + 1))
+    }
+
     public static func isSegment(_ name: String) -> Bool {
         name.hasSuffix("." + segmentExtension) && !name.hasPrefix(".")
     }
@@ -88,6 +94,9 @@ public struct LocalIdentity: Codable, Hashable, Sendable {
 public enum LogError: Error, LocalizedError, Sendable {
     case notWritable(path: String, underlying: String)
     case incompatibleFormat(found: Int, supported: Int)
+    /// This Mac's own log is there but cannot be read, so it is not known which
+    /// numbers are already spent.
+    case ownLogUnavailable(path: String, underlying: String)
 
     public var errorDescription: String? {
         switch self {
@@ -95,6 +104,8 @@ public enum LogError: Error, LocalizedError, Sendable {
             "Cannot write the change log at \(path): \(underlying)"
         case .incompatibleFormat(let found, let supported):
             "This log was written by a newer version of the app (format \(found), this build reads \(supported))."
+        case .ownLogUnavailable(let path, let underlying):
+            "This Mac's change log at \(path) cannot be read right now: \(underlying) Nothing is written to it until it can, so the other Macs do not miss a record. Open the app again once iCloud Drive has the file."
         }
     }
 }

@@ -6,9 +6,12 @@ public struct SyncReport: Sendable, Hashable {
     /// Peers whose logs promise more than we could read. Shown to the user, because
     /// "sync is behind" and "there is nothing new" must never look the same.
     public var incompletePeers: [PeerProblem] = []
+    /// Why the folder the devices write into could not be listed. Nothing was
+    /// read at all, which must not look like there being nothing to read.
+    public var devicesUnreadable: String?
     public var checkedAt: Date = .distantPast
 
-    public var isHealthy: Bool { incompletePeers.isEmpty }
+    public var isHealthy: Bool { incompletePeers.isEmpty && devicesUnreadable == nil }
 }
 
 public struct PeerProblem: Sendable, Hashable {
@@ -23,7 +26,8 @@ public struct PeerProblem: Sendable, Hashable {
     public var kind: Kind
 }
 
-/// Reads the other machines' logs and folds them into the local index.
+/// Reads the other machines' logs and folds them into the local index — and this
+/// machine's own, once, when the index has lost what it wrote.
 public struct PeerSync: Sendable {
     let store: Store
     let projectID: UUID
@@ -39,12 +43,36 @@ public struct PeerSync: Sendable {
     public func pull(root: URL, now: Date = Date()) throws -> SyncReport {
         var report = SyncReport()
         report.checkedAt = now
-        let watermarks = try store.peers(for: projectID)
-            .reduce(into: [UUID: Int]()) { $0[$1.deviceID] = $1.appliedSequence }
+        let peers: [PeerLog]
+        do {
+            peers = try DeviceLogReader.listPeers(in: root)
+        } catch {
+            report.devicesUnreadable = error.localizedDescription
+            return report
+        }
+        let known = try store.peers(for: projectID)
+        // Before anything is read: the other Macs' records fill the index too.
+        let indexWasEmpty = try store.isEmpty(projectID: projectID)
+        let watermarks = known.reduce(into: [UUID: Int]()) { $0[$1.deviceID] = $1.appliedSequence }
 
-        for peer in DeviceLogReader.peers(in: root) where peer.deviceID != selfDeviceID {
-            let after = watermarks[peer.deviceID] ?? 0
-            let result = DeviceLogReader.read(peer: peer, after: after)
+        for peer in peers {
+            var after = watermarks[peer.deviceID] ?? 0
+            var result: LogReadResult
+            // How far this pass may read. Only this Mac's own log has a limit.
+            var through: Int?
+            if peer.deviceID == selfDeviceID {
+                guard let range = try ownLogRange(state: known.first { $0.deviceID == selfDeviceID },
+                                                  peer: peer, indexWasEmpty: indexWasEmpty, now: now)
+                else { continue }
+                (after, through) = (range.after, range.through)
+                result = DeviceLogReader.read(peer: peer, after: after)
+                result.records.removeAll { $0.sequence > range.through }
+                result.gaps = result.gaps.compactMap {
+                    $0.lowerBound > range.through ? nil : $0.lowerBound...min($0.upperBound, range.through)
+                }
+            } else {
+                result = DeviceLogReader.read(peer: peer, after: after)
+            }
             let name = peer.manifest?.deviceName ?? peer.deviceID.uuidString
             let memberName = peer.manifest?.member.name
 
@@ -80,7 +108,8 @@ public struct PeerSync: Sendable {
             try store.updatePeer(projectID: projectID, deviceID: peer.deviceID,
                                  memberID: peer.manifest?.member.id, deviceName: name,
                                  appliedSequence: watermark,
-                                 claimedSequence: peer.manifest?.lastSequence ?? watermark, at: now)
+                                 claimedSequence: through ?? peer.manifest?.lastSequence ?? watermark,
+                                 at: now)
             if let failure {
                 report.incompletePeers.append(.init(deviceName: name, memberName: memberName,
                     kind: .unreadable("record \(failure.sequence): \(failure.reason)")))
@@ -101,6 +130,35 @@ public struct PeerSync: Sendable {
             }
         }
         return report
+    }
+
+    /// Which of this Mac's own records still have to be read into the index.
+    ///
+    /// Normally none. Everything this Mac writes goes into the index as it is
+    /// written, and reading it back would apply old renames over newer state.
+    /// But a project added again, or an index rebuilt from scratch, starts
+    /// without any of it — while the other Macs go on showing every entry, and
+    /// the logs are meant to be enough to rebuild from. So the first pass over an
+    /// empty index reads the own log up to where it stood then, and nothing past
+    /// that: what comes after was written into this index already.
+    ///
+    /// The mark is a peer row for this device, with that point as its claim. A
+    /// replay held up by a gap or a download resumes from the row; one that has
+    /// caught up is never started again. An index that already had the project
+    /// when this was introduced gets the mark without reading anything.
+    func ownLogRange(state: PeerState?, peer: PeerLog, indexWasEmpty: Bool,
+                     now: Date) throws -> (after: Int, through: Int)? {
+        if let state {
+            guard state.appliedSequence < state.claimedSequence else { return nil }
+            return (state.appliedSequence, state.claimedSequence)
+        }
+        // Not knowing how far the log goes is no reason to decide it is empty.
+        guard let through = peer.manifest?.lastSequence else { return nil }
+        if through > 0, indexWasEmpty { return (0, through) }
+        try store.updatePeer(projectID: projectID, deviceID: peer.deviceID,
+                             memberID: peer.manifest?.member.id, deviceName: peer.manifest?.deviceName,
+                             appliedSequence: through, claimedSequence: through, at: now)
+        return nil
     }
 
     func advanceWatermark(from start: Int, records: [LogRecord], gaps: [ClosedRange<Int>]) -> Int {

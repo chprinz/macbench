@@ -250,7 +250,15 @@ Sync being late must never look like nothing having happened.
 - A segment that is an iCloud placeholder is reported as "waiting", and a download
   is requested.
 - A half-written final line is tolerated (a segment mid-upload legitimately looks
-  like that); a broken line anywhere else is reported.
+  like that); a broken line anywhere else is reported. The writer cuts one off its
+  own last segment before appending, so a crash mid-write never becomes one.
+- A device's own numbering comes from its segments as much as its manifest. A
+  manifest that is gone or broken is rebuilt from them; one that is there but
+  cannot be read (evicted, offline) stops the writer rather than letting it count
+  from one again below where the others already are.
+- A devices folder that cannot be listed is reported, not read as an empty one.
+- A project whose index is empty — added again, or rebuilt — reads this Mac's own
+  log back once, up to where it stood, so the rebuild covers both halves.
 - FSEvents replay is only trusted while the volume's event-history UUID matches
   the one stored. When it does not, the whole folder is compared instead, and
   everything that comes out of that comparison is marked as reconstructed with an

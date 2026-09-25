@@ -156,6 +156,17 @@ extension Store {
         }
     }
 
+    /// True while nothing of the project is in the index: no file, no entry. The
+    /// state right after it was added, or re-added after the index was lost.
+    public func isEmpty(projectID: UUID) throws -> Bool {
+        try read { db in
+            try !(Bool.fetchOne(db, sql: """
+                SELECT EXISTS (SELECT 1 FROM node WHERE projectID = ?)
+                    OR EXISTS (SELECT 1 FROM entry WHERE projectID = ?)
+                """, arguments: [projectID, projectID]) ?? false)
+        }
+    }
+
     public func updatePeer(projectID: UUID, deviceID: UUID, memberID: UUID?, deviceName: String?,
                            appliedSequence: Int, claimedSequence: Int, at date: Date) throws {
         try write { db in

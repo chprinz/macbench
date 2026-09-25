@@ -417,3 +417,127 @@ struct OutOfOrderRecordTests {
         #expect(try store.files(projectID: project.id, parentPath: "Entwurf", viewer: viewer).isEmpty)
     }
 }
+
+/// This Mac's own log, as the index sees it. It is written and indexed at the
+/// same time, so it is normally never read back — except when the index has lost
+/// what it held.
+@Suite("Own log")
+struct OwnLogTests {
+
+    private func makeRoot() throws -> URL {
+        let url = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appending(path: "macbench-own-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    private func message(_ text: String, by member: Member) -> Entry {
+        Entry(projectID: UUID(), authorID: member.id, createdAt: t0, observedAt: t0,
+              kind: .message, text: text)
+    }
+
+    @Test("A project added again gets back what this Mac wrote into it")
+    func emptyIndexReadsOwnLog() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let anna = Member(name: "Anna", colorHex: "#E4572E")
+        let identity = LocalIdentity(deviceName: "Annas MacBook", member: anna)
+        let writer = try DeviceLogWriter(root: root, identity: identity)
+        _ = try await writer.append([.member(anna), .entry(EntryRecord(entry: message("vorher", by: anna)))])
+
+        // The same Mac, the same person, a fresh index.
+        let store = try Store()
+        try store.upsert(member: anna, at: t0)
+        let project = Project(id: UUID(), name: "P", addedAt: t0)
+        try store.addProject(project, rootPath: root.path, bookmark: nil)
+        let sync = PeerSync(store: store, projectID: project.id, selfDeviceID: identity.deviceID)
+        let report = try sync.pull(root: root, now: t0)
+        #expect(report.isHealthy)
+        let timeline = try store.timeline(scope: .project(project.id), viewer: anna.id)
+        #expect(timeline.map(\.entry.text) == ["vorher"])
+        #expect(timeline.first?.author?.name == "Anna")
+        #expect(timeline.first?.isUnread == false, "your own words are not news to you")
+
+        // What this Mac writes from here on goes into the index as it is written.
+        // Reading it back would apply it a second time.
+        _ = try await writer.append([.entry(EntryRecord(entry: message("danach", by: anna)))])
+        #expect(try sync.pull(root: root, now: t0).appliedRecords == 0)
+    }
+
+    @Test("An index that already has the project does not read its own log")
+    func populatedIndexSkipsOwnLog() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let anna = Member(name: "Anna", colorHex: "#E4572E")
+        let identity = LocalIdentity(deviceName: "Annas MacBook", member: anna)
+        let writer = try DeviceLogWriter(root: root, identity: identity)
+        _ = try await writer.append([.entry(EntryRecord(entry: message("schon da", by: anna)))])
+
+        let store = try Store()
+        let project = Project(id: UUID(), name: "P", addedAt: t0)
+        try store.addProject(project, rootPath: root.path, bookmark: nil)
+        try store.upsert(node: Node(id: UUID(), projectID: project.id, relativePath: "a.txt",
+                                    isDirectory: false, firstSeenAt: t0, lastSeenAt: t0))
+        let sync = PeerSync(store: store, projectID: project.id, selfDeviceID: identity.deviceID)
+        #expect(try sync.pull(root: root, now: t0).appliedRecords == 0)
+        #expect(try store.timeline(scope: .project(project.id), viewer: anna.id).isEmpty)
+        let own = try #require(try store.peers(for: project.id).first { $0.deviceID == identity.deviceID })
+        #expect(own.appliedSequence == 1 && !own.isBehind)
+    }
+
+    @Test("Reading the own log back waits at a gap like any other")
+    func ownReplayResumesAfterGap() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let anna = Member(name: "Anna", colorHex: "#E4572E")
+        let identity = LocalIdentity(deviceName: "Annas MacBook", member: anna)
+        let writer = try DeviceLogWriter(root: root, identity: identity)
+        let filler = String(repeating: "x", count: 900)
+        for index in 0..<300 {
+            _ = try await writer.append([.entry(EntryRecord(entry: message("\(index) \(filler)", by: anna)))])
+        }
+        let dir = LogLayout.deviceDirectory(in: root, device: identity.deviceID)
+        let first = dir.appending(path: LogLayout.segmentName(1))
+        let aside = root.appending(path: "aside.jsonl")
+        try FileManager.default.moveItem(at: first, to: aside)
+
+        let store = try Store()
+        let project = Project(id: UUID(), name: "P", addedAt: t0)
+        try store.addProject(project, rootPath: root.path, bookmark: nil)
+        let sync = PeerSync(store: store, projectID: project.id, selfDeviceID: identity.deviceID)
+        let waiting = try sync.pull(root: root, now: t0)
+        #expect(!waiting.isHealthy, "a hole in the own log is reported like one in anybody's")
+
+        // The first segment turns up. The index is no longer empty, and the
+        // replay still has to finish.
+        try FileManager.default.moveItem(at: aside, to: first)
+        try sync.pull(root: root, now: t0)
+        var all = TimelineFilter()
+        all.limit = 1000
+        #expect(try store.timeline(scope: .project(project.id), filter: all, viewer: anna.id).count == 300)
+        let own = try #require(try store.peers(for: project.id).first { $0.deviceID == identity.deviceID })
+        #expect(!own.isBehind)
+    }
+
+    @Test("A devices folder that cannot be listed is reported, not taken for an empty one")
+    func unlistableDevicesFolder() async throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try Store()
+        let project = Project(id: UUID(), name: "P", addedAt: t0)
+        try store.addProject(project, rootPath: root.path, bookmark: nil)
+        let sync = PeerSync(store: store, projectID: project.id, selfDeviceID: UUID())
+
+        // Nobody has written here yet: nothing to read, and nothing wrong.
+        #expect(try sync.pull(root: root, now: t0).isHealthy)
+
+        let anna = Member(name: "Anna", colorHex: "#E4572E")
+        _ = try DeviceLogWriter(root: root, identity: LocalIdentity(deviceName: "A", member: anna))
+        let devices = LogLayout.devicesDirectory(in: root).path(percentEncoded: false)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: devices)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: devices) }
+        let report = try sync.pull(root: root, now: t0)
+        #expect(report.devicesUnreadable != nil)
+        #expect(!report.isHealthy)
+    }
+}

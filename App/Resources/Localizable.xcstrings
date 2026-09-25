@@ -843,6 +843,17 @@
         }
       }
     },
+    "Could not look for the other Macs in %@: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die anderen Macs in %@ lassen sich nicht finden: %@"
+          }
+        }
+      }
+    },
     "Could not read part of %@'s log in %@: %@": {
       "extractionState": "manual",
       "localizations": {

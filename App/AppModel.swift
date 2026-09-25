@@ -738,6 +738,11 @@ final class AppModel {
                 found.append(Banner(text: String(localized: "Something went wrong in \(name)"),
                                     detail: error))
             }
+            if let reason = status.lastSync?.devicesUnreadable {
+                found.append(Banner(
+                    text: String(localized: "Could not look for the other Macs in \(name): \(reason)"),
+                    detail: String(localized: "Entries may be missing until this resolves.")))
+            }
             for problem in status.lastSync?.incompletePeers ?? [] {
                 let who = displayName(problem)
                 switch problem.kind {
