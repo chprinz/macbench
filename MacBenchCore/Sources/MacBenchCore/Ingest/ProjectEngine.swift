@@ -72,6 +72,8 @@ public actor ProjectEngine {
     private var coalescer = Coalescer()
     private var watcher: FSEventsWatcher?
     private var drainTask: Task<Void, Never>?
+    private var batchTask: Task<Void, Never>?
+    private var batchDelivery: AsyncStream<FSBatch>.Continuation?
     private var pollTask: Task<Void, Never>?
     private var pendingRemovals: [UInt64: (node: Node, at: Date)] = [:]
     private var deferredIncoming: [(entry: Entry, until: Date)] = []
@@ -188,6 +190,9 @@ public actor ProjectEngine {
         pollTask?.cancel(); pollTask = nil
         watcher?.stop()
         watcher = nil
+        // Batches not handled yet lie past the cursor and are replayed next time.
+        batchDelivery?.finish(); batchDelivery = nil
+        batchTask?.cancel(); batchTask = nil
         // Nothing pending may be lost on quit: flush the windows that are still open.
         await emit(coalescer.drainAll())
         await flushDeferred(force: true)
@@ -460,8 +465,21 @@ public actor ProjectEngine {
         // Before the stream exists, so that anything it goes on to deliver lies
         // beyond this point and would be replayed if it never got handled.
         handledEventID = since ?? UInt64(FSEventsGetCurrentEventId())
-        let watcher = FSEventsWatcher(root: root, sinceEventID: since) { [weak self] batch in
-            Task { await self?.handle(batch) }
+        // One queue, one reader, so batches are handled in the order FSEvents
+        // delivered them. A task per batch usually kept that order, a second apart
+        // — but nothing guaranteed it, and a deletion handled before the creation
+        // it follows is a file that stays.
+        let (batches, delivery) = AsyncStream.makeStream(of: FSBatch.self)
+        batchDelivery?.finish()
+        batchTask?.cancel()
+        batchDelivery = delivery
+        batchTask = Task { [weak self] in
+            for await batch in batches {
+                await self?.handle(batch)
+            }
+        }
+        let watcher = FSEventsWatcher(root: root, sinceEventID: since) { batch in
+            delivery.yield(batch)
         }
         self.watcher = watcher
         _ = watcher.start()

@@ -37,11 +37,6 @@ someone's head. Newest observations at the top of each section.
 
 ## Technical
 
-- **FSEvents batches are handed to the engine in unstructured tasks**, one per
-  callback, and nothing guarantees they run in the order they were delivered.
-  In practice a second apart; a serial hand-off (an `AsyncStream`) would make
-  it a guarantee.
-
 - **The thumbnail cache on disk is never pruned.** Keyed by file and date now, so
   every saved version of an image leaves a small PNG behind.
 
