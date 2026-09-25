@@ -11,6 +11,9 @@ struct TimelineView: View {
     /// The feed picks a line, and the column beside it shows what was said around
     /// it. A conversation has nothing to pick.
     var selectsRows = false
+    /// Whether there may be more before the first line shown, and how to get it.
+    var reachesFurther = false
+    var showEarlier: @MainActor () -> Void = {}
     /// The first entry that was unread when this stream was opened. Frozen on
     /// purpose: entries are marked read as they scroll past, so without holding
     /// it the "new from here" line would erase itself while you read.
@@ -28,6 +31,9 @@ struct TimelineView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                            if reachesFurther {
+                                EarlierMarker(shown: items.count, action: showEarlier)
+                            }
                             ForEach(days, id: \.day) { group in
                                 Section {
                                     ForEach(group.rows) { row in
@@ -725,5 +731,24 @@ struct EmptyStateView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(40)
+    }
+}
+
+/// Where a list stops going back. It used to stop without a word, and a
+/// project's first weeks looked like weeks in which nothing had happened.
+private struct EarlierMarker: View {
+    let shown: Int
+    let action: @MainActor () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text("Only the latest \(shown) entries are shown.")
+                .font(.caption).foregroundStyle(.tertiary)
+            Button("Show earlier", action: action)
+                .buttonStyle(.borderless)
+                .font(.caption)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
     }
 }

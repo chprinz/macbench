@@ -83,6 +83,8 @@ final class AppModel {
     var selection: Selection = .activity {
         didSet {
             guard selection != oldValue else { return }
+            activityDepth = 1
+            streamDepth = 1
             filter.searchText = ""
             selectedFile = nil
             selectedEntry = nil
@@ -97,6 +99,7 @@ final class AppModel {
     var selectedFile: UUID? {
         didSet {
             guard selectedFile != oldValue else { return }
+            streamDepth = 1
             readHiddenChanges()
             refreshDetail()
         }
@@ -139,6 +142,7 @@ final class AppModel {
     var selectedEntry: TimelineItem? {
         didSet {
             guard selectedEntry?.id != oldValue?.id else { return }
+            streamDepth = 1
             if let selectedEntry { flash(selectedEntry.id) }
             let file = selectedEntry?.node.flatMap { $0.isPlaceholder ? nil : $0.id }
             // Selecting a task is selecting what it is about: that is what gives
@@ -179,12 +183,42 @@ final class AppModel {
         }
     }
     var isSearching: Bool { !searchText.isEmpty }
+
+    /// How far back the feed and the conversation column reach, in pages. Each
+    /// list stopped at one page and said nothing about it, so a project's first
+    /// weeks were simply not there. Back to one page whenever the list becomes
+    /// about something else.
+    private(set) var activityDepth = 1
+    private(set) var streamDepth = 1
+    static let historyPage = TimelineFilter().limit
+
+    /// Whether the list may reach further back than it shows.
+    var activityIsCut: Bool { activity.count >= activityDepth * Self.historyPage }
+    var timelineIsCut: Bool { timeline.count >= streamDepth * Self.historyPage }
+
+    func showEarlierActivity() {
+        activityDepth += 1
+        refreshDetail()
+    }
+
+    func showEarlierStream() {
+        streamDepth += 1
+        refreshDetail()
+    }
+
+    /// The query for the conversation column, one page per step back.
+    private var streamFilter: TimelineFilter {
+        var filter = TimelineFilter()
+        filter.limit = streamDepth * Self.historyPage
+        return filter
+    }
     /// The line picked among the search results. The conversation column shows
     /// what was said around it, as it does beside the feed; kept apart from
     /// `selectedEntry` so that ending the search puts back what was there.
     var searchPick: TimelineItem? {
         didSet {
             guard searchPick?.id != oldValue?.id else { return }
+            streamDepth = 1
             if let searchPick { flash(searchPick.id) }
             refreshDetail()
         }
@@ -737,6 +771,7 @@ final class AppModel {
         // left over from the feed would empty the stream for no visible reason.
         var filter = filter
         filter.project = nil
+        filter.limit = streamDepth * Self.historyPage
         timeline = (try? store.timeline(scope: scope, filter: filter, viewer: viewer)) ?? []
         files = fileSort.sorted(currentFiles(viewer: viewer))
         subfolders = fileSort.sorted(currentSubfolders())
@@ -756,6 +791,8 @@ final class AppModel {
     /// filter bar narrows the feed, not the conversation: a thread with half its
     /// messages missing is worse than no thread.
     private func refreshActivity(viewer: UUID) {
+        var filter = filter
+        filter.limit = activityDepth * Self.historyPage
         activity = (try? store.timeline(scope: .activity, filter: filter, viewer: viewer)) ?? []
         tasks = []
         refreshContext(in: activity, viewer: viewer)
@@ -769,9 +806,10 @@ final class AppModel {
             searchPick = fresh
         }
         if let file = searchPickFile {
-            timeline = (try? store.timeline(scope: .file(file), viewer: viewer)) ?? []
+            timeline = (try? store.timeline(scope: .file(file), filter: streamFilter, viewer: viewer)) ?? []
         } else if let projectID = searchPick?.entry.projectID {
-            timeline = (try? store.timeline(scope: .project(projectID), viewer: viewer)) ?? []
+            timeline = (try? store.timeline(scope: .project(projectID), filter: streamFilter,
+                                            viewer: viewer)) ?? []
         } else {
             timeline = []
         }
@@ -789,9 +827,11 @@ final class AppModel {
         subfolders = []
         breadcrumb = []
         if let selectedFile {
-            timeline = (try? store.timeline(scope: .file(selectedFile), viewer: viewer)) ?? []
+            timeline = (try? store.timeline(scope: .file(selectedFile), filter: streamFilter,
+                                            viewer: viewer)) ?? []
         } else if let projectID = selectedEntry?.entry.projectID {
-            timeline = (try? store.timeline(scope: .project(projectID), viewer: viewer)) ?? []
+            timeline = (try? store.timeline(scope: .project(projectID), filter: streamFilter,
+                                            viewer: viewer)) ?? []
         } else {
             timeline = []
         }

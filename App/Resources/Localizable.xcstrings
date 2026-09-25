@@ -1814,6 +1814,47 @@
         }
       }
     },
+    "Only the latest %lld entries are shown.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Only the latest %lld entry is shown."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Only the latest %lld entries are shown."
+                }
+              }
+            }
+          }
+        },
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Nur der letzte %lld Eintrag wird angezeigt."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Nur die letzten %lld Einträge werden angezeigt."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Only unread": {
       "localizations": {
         "de": {
@@ -2224,6 +2265,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nachrichten einblenden"
+          }
+        }
+      }
+    },
+    "Show earlier": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frühere anzeigen"
           }
         }
       }

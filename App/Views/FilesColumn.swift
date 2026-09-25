@@ -105,7 +105,9 @@ struct ActivityColumn: View {
             TimelineView(items: model.activity,
                          emptyTitle: "Nothing has happened yet",
                          emptyHint: "Everything that happens in any of your projects lands here — what people write, and the file changes that were noticed. What you have not read is marked, and the list opens at the first of it.",
-                         selectsRows: true)
+                         selectsRows: true,
+                         reachesFurther: model.activityIsCut,
+                         showEarlier: { model.showEarlierActivity() })
         }
     }
 }
@@ -118,7 +120,9 @@ struct StreamColumn: View {
         VStack(spacing: 0) {
             header
             Divider()
-            TimelineView(items: model.timeline, emptyTitle: emptyTitle, emptyHint: emptyHint)
+            TimelineView(items: model.timeline, emptyTitle: emptyTitle, emptyHint: emptyHint,
+                         reachesFurther: model.timelineIsCut,
+                         showEarlier: { model.showEarlierStream() })
             if model.currentProjectID != nil {
                 Divider()
                 ComposerView()

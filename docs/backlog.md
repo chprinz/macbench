@@ -16,9 +16,6 @@ someone's head. Newest observations at the top of each section.
 ## Rough edges
 
 - **No way to mark an entry unread again** after reading it by accident.
-- **The timeline stops at 400 entries** with no way to load more and nothing
-  saying it stopped. It matters more now that the activity list is the widest
-  column rather than a 320-point inspector.
 - **The picked line is forgotten on relaunch.** Latest activity and Tasks restore
   which list you were in, not which entry you had open, so the column beside them
   starts empty every morning.
