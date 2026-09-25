@@ -372,7 +372,11 @@ final class AppModel {
         restoreLayout()
         refreshAll()
         isReady = true
-        await notifier.requestAuthorisation()
+        // Asked on the side. The question waits for an answer, and it arrives as a
+        // notification in a corner that is easy to miss: the folder picked during
+        // onboarding was added only once somebody had found and answered it, and
+        // until then the window stood there empty.
+        Task { await notifier.requestAuthorisation() }
     }
 
     func completeOnboarding(name: String, colorHex: String, deviceName: String,
@@ -788,6 +792,10 @@ final class AppModel {
     private func refreshBanners() {
         refreshCatchUp()
         var found: [Banner] = []
+        if let addFailure {
+            found.append(Banner(text: String(localized: "The folder could not be added"),
+                                detail: addFailure))
+        }
         if indexWasRebuilt && projects.isEmpty {
             found.append(Banner(
                 text: String(localized: "The list of projects had to be started again"),
@@ -1219,11 +1227,17 @@ final class AppModel {
             projects = (try? store.projects()) ?? []
             await startEngine(for: project, identity: identity)
             selection = .project(project.id)
+            addFailure = nil
             refreshAll()
         } catch {
-            banners.append(Banner(text: error.localizedDescription))
+            addFailure = error.localizedDescription
+            refreshBanners()
         }
     }
+
+    /// Why the last folder could not be added. Held as state for the same reason
+    /// as `unreachableProjects`: an appended banner lasted until the next refresh.
+    private var addFailure: String?
 
     func removeProject(_ id: UUID) async {
         if let engine = engines[id] { await engine.stop() }

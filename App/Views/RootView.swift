@@ -11,6 +11,8 @@ struct RootView: View {
     // every frame of the drag stored a width, which re-applied an ideal width,
     // which moved the divider back.
     @State private var idealSidebarWidth = Layout.sidebarWidth
+    /// The middle column's width, which is all the room the search field has.
+    @State private var filesWidth: CGFloat = 600
 
     /// The sidebar's width lives in plain UserDefaults rather than @AppStorage on
     /// purpose: it is written while dragging, and nothing about that should
@@ -53,6 +55,9 @@ struct RootView: View {
                         }
                 } detail: {
                     FilesColumn()
+                        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+                            filesWidth = width
+                        }
                         .inspector(isPresented: $model.isStreamVisible) {
                             StreamColumn()
                                 // Wide enough to read a sentence in, because
@@ -66,7 +71,7 @@ struct RootView: View {
                             // which was on top of the sidebar. This one sits over
                             // the column it searches.
                             ToolbarItem(placement: .principal) {
-                                SearchField(text: $model.searchText)
+                                SearchField(text: $model.searchText, room: filesWidth)
                             }
                             ToolbarItem(placement: .primaryAction) {
                                 Button {
@@ -93,6 +98,8 @@ struct RootView: View {
 
 struct SearchField: View {
     @Binding var text: String
+    /// The width of the column it sits over. The toolbar item cannot see it.
+    var room: CGFloat
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -123,8 +130,16 @@ struct SearchField: View {
         // a grey box someone had dropped in the title bar.
         // A wide minimum here is a minimum for the whole window: the toolbar cannot
         // shrink below its items, and the columns then hang over the edges.
-        .frame(minWidth: 140, idealWidth: 380, maxWidth: 520)
+        //
+        // An ideal width did not help either. The toolbar gave the field its ideal
+        // whatever the column had, so over a narrow column it ran into the
+        // messages and pushed their button off the window. It is told what the
+        // column leaves beside the title instead.
+        .frame(width: min(520, max(140, room - Self.titleRoom)))
     }
+
+    /// The window title and the margins around it, left of the field.
+    private static let titleRoom: CGFloat = 190
 }
 
 /// Sync problems are shown, never swallowed. "Nothing new" and "we could not

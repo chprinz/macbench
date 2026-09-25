@@ -2471,6 +2471,17 @@
         }
       }
     },
+    "The folder could not be added": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Ordner ließ sich nicht hinzufügen"
+          }
+        }
+      }
+    },
     "The index starts empty": {
       "extractionState": "manual",
       "localizations": {
