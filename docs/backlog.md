@@ -15,9 +15,6 @@ someone's head. Newest observations at the top of each section.
 
 ## Rough edges
 
-- **The picked line is forgotten on relaunch.** Latest activity and Tasks restore
-  which list you were in, not which entry you had open, so the column beside them
-  starts empty every morning.
 - **Which filters are remembered is a judgement call, not a setting.**
   Categories, "without file changes", the sidebar's tree filter and the task
   list's person come back; "Done" deliberately does not, because it would open

@@ -83,6 +83,8 @@ final class AppModel {
     var selection: Selection = .activity {
         didSet {
             guard selection != oldValue else { return }
+            // Only for the list that was open at launch.
+            if !isRestoring { entryToRestore = nil }
             keptUnread.removeAll()
             activityDepth = 1
             streamDepth = 1
@@ -144,6 +146,7 @@ final class AppModel {
     var selectedEntry: TimelineItem? {
         didSet {
             guard selectedEntry?.id != oldValue?.id else { return }
+            persistPickedEntry()
             streamDepth = 1
             if let selectedEntry { flash(selectedEntry.id) }
             let file = selectedEntry?.node.flatMap { $0.isPlaceholder ? nil : $0.id }
@@ -394,6 +397,7 @@ final class AppModel {
     static let archiveDaysKey = "archive.afterDays"
     static let expandedKey = "ui.expandedFolders"
     static let selectionKey = "ui.lastSelection"
+    static let entryKey = "ui.lastEntry"
     static let filtersKey = "ui.filters"
 
     /// How long a deleted file stays in the lists before moving to the archive.
@@ -589,6 +593,7 @@ final class AppModel {
     private func restoreLayout() {
         isRestoring = true
         defer { isRestoring = false }
+        entryToRestore = (try? store.setting(Self.entryKey, as: String.self)).flatMap(UUID.init(uuidString:))
         if let stored = try? store.setting(Self.expandedKey, as: [String].self) {
             expanded = Set(stored.compactMap(Selection.init(token:)))
         }
@@ -658,6 +663,17 @@ final class AppModel {
     private func persistSelection() {
         guard !isRestoring else { return }
         try? store.setSetting(Self.selectionKey, value: selection.token)
+    }
+
+    /// The line picked in the feed or the task list, put back at launch. Which
+    /// list you were in came back and the line did not, so the column beside it
+    /// started empty every morning. Found in the list once that has been read;
+    /// a line that is no longer in it — a task ticked off since — is let go.
+    private var entryToRestore: UUID?
+
+    private func persistPickedEntry() {
+        guard !isRestoring else { return }
+        try? store.setSetting(Self.entryKey, value: selectedEntry?.id.uuidString ?? "")
     }
 
     // MARK: - Live updates
@@ -828,6 +844,14 @@ final class AppModel {
     }
 
     private func refreshContext(in list: [TimelineItem], viewer: UUID) {
+        if let id = entryToRestore, selectedEntry == nil {
+            entryToRestore = nil
+            // Setting it refreshes this again, with the line in place.
+            if let item = list.first(where: { $0.id == id }) {
+                selectedEntry = item
+                return
+            }
+        }
         if let current = selectedEntry, let fresh = list.first(where: { $0.id == current.id }) {
             selectedEntry = fresh
         }
