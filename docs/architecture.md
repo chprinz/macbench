@@ -117,6 +117,12 @@ impression was wrong — which it can be for a document package, since a package
 reports no download of its own and a save arriving from the other Mac can look
 like one made here.
 
+A document package is never taken for ours on its date alone, in a shared
+folder. It reports no download of its own, so a Pages document the other person
+created a minute ago looks exactly like one saved here; that put this Mac's name
+on their documents. Only an upload is proof. Otherwise it waits like anything
+else that may have arrived, and iCloud's last editor decides.
+
 Moves, renames and deletions are not asked about: the last editor says who
 changed the contents, not who moved the file, and a deleted file is not there to
 ask.
@@ -139,10 +145,24 @@ nobody claims it, the awake-window inference decides; with nobody else in the
 folder, it is ours at once. A deletion found in history replayed after a restart
 happened while nobody here watched and stays nameless, marked reconstructed.
 
+A move waits the same way. Sync carries out the other Mac's move on this disk
+exactly as a move made here — same file, new place — and claiming every move
+seen live put this Mac's name on a folder the other person had moved. It is
+matched on the file and on when it was seen, since a move leaves the file's own
+date alone.
+
 A file this Mac never had under that name — known only from a peer's log, or
 renamed there and not yet here — is not deleted when it is missing. The node's
 local file identity marks the difference: it is set when this disk is seen to
 have the file, and dropped when a peer renames it.
+
+### Opening a file is not changing it
+
+Opening a document touches it: the system notes when it was last used, iCloud
+updates its bookkeeping, and each of those is a filesystem event. A file already
+in the index only counts as changed when its date or size moved — the same test
+the catch-up comparison uses. Without it, opening the other person's Pages
+document went down as an edit by whoever opened it.
 
 ### Loud events settle for thirty seconds
 

@@ -44,6 +44,21 @@ struct AuthorshipResolverTests {
         #expect(resolver.assessLive(signals) == .local)
     }
 
+    @Test("A shared package proves nothing by its date; only an upload makes it ours")
+    func sharedPackageNeedsAnUpload() {
+        var signals = FileOriginSignals()
+        signals.isPackage = true
+        signals.isShared = true
+        signals.contentAge = 20
+        #expect(resolver.assessLive(signals) == .incoming,
+                "a Pages document the other person saved a minute ago looks exactly like this")
+        signals.isUploading = true
+        #expect(resolver.assessLive(signals) == .local)
+        signals.isUploading = false
+        signals.isShared = false
+        #expect(resolver.assessLive(signals) == .local, "outside iCloud there is no editor to ask")
+    }
+
     @Test("A machine that was awake and silent rules its own user out")
     func backfillInference() {
         let me = UUID(), them = UUID()

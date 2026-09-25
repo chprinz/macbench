@@ -12,6 +12,10 @@ public struct FileOriginSignals: Sendable, Hashable {
     public var isUploading: Bool = false
     /// How far the file's own modification date is behind the moment we noticed.
     public var contentAge: TimeInterval = 0
+    /// In a folder shared through iCloud, where iCloud can say who last saved it.
+    public var isShared: Bool = false
+    /// A document package, which reports no download of its own.
+    public var isPackage: Bool = false
 
     public init() {}
 }
@@ -64,7 +68,7 @@ public struct ICloudInspector: Sendable {
         let keys: Set<URLResourceKey> = [
             .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
             .ubiquitousItemIsDownloadingKey, .ubiquitousItemIsUploadingKey,
-            .contentModificationDateKey,
+            .ubiquitousItemIsSharedKey, .contentModificationDateKey,
         ]
         guard let values = try? url.resourceValues(forKeys: keys) else { return signals }
 
@@ -74,6 +78,7 @@ public struct ICloudInspector: Sendable {
         guard values.isUbiquitousItem == true else { return signals }
         signals.isDownloading = values.ubiquitousItemIsDownloading ?? false
         signals.isUploading = values.ubiquitousItemIsUploading ?? false
+        signals.isShared = values.ubiquitousItemIsShared ?? false
         if let status = values.ubiquitousItemDownloadingStatus {
             signals.isNotDownloaded = status != .current
         }

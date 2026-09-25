@@ -37,6 +37,12 @@ public struct AuthorshipResolver: Sendable {
         // Uploading means our machine is pushing this file out, which only happens
         // after a local write.
         if signals.isUploading { return .local }
+        // A package arriving from the other Mac shows no download, and a save
+        // made there a minute ago looks just like one made here — which put this
+        // Mac's name on Pages documents the other person had created. In a
+        // shared folder, iCloud's last editor settles it once the change has
+        // waited for the other log; see `author(from:)`.
+        if signals.isPackage, signals.isShared { return .incoming }
         if signals.contentAge > staleContentThreshold { return .incoming }
         return .local
     }

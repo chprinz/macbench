@@ -609,7 +609,7 @@ public actor ProjectEngine {
             lineCounter.forget(node.id)
             // A vanished file leaves nothing to inspect: sync removing it looks
             // exactly like somebody deleting it here. Whose it was is decided later,
-            // once the other Macs had a chance to say — see `resolveRemoval`.
+            // once the other Macs had a chance to say — see `resolveUnclaimed`.
             var event = RawFileEvent(nodeID: node.id, relativePath: relative,
                                      isDirectory: node.isDirectory, type: .removed,
                                      contentDate: now, observedAt: now)
@@ -646,8 +646,23 @@ public actor ProjectEngine {
                                      type: isRename ? .renamed : .moved,
                                      contentDate: modifiedAt, observedAt: now,
                                      fromPath: node.relativePath)
-            event.isLocalOrigin = true
-            queue(event, verdict: .local)
+            // Sync carries out the other Mac's move on this disk exactly as a
+            // move made here: same file, new place, nothing to inspect. Taken
+            // for ours, it put this Mac's name on a folder the other person had
+            // moved. So it waits for their log like a deletion does — see
+            // `resolveUnclaimed`.
+            queue(event, verdict: .unknown)
+            return
+        }
+
+        // Opening a document touches it — the system notes when it was last
+        // used, iCloud updates its bookkeeping — without anybody changing a
+        // word. Only a new date or size is a change. Opening the other person's
+        // Pages document went down as an edit by whoever opened it.
+        if let existing, existing.state == .present, !isDirectory,
+           !Reconciler.changed(node: existing, item: ScannedItem(
+               relativePath: relative, isDirectory: false, contentModifiedAt: modifiedAt,
+               fileSize: size, fileIdentifier: identifier, isMaterialised: true)) {
             return
         }
 
@@ -655,7 +670,10 @@ public actor ProjectEngine {
             for: url, observedAt: now,
             recentlyMaterialised: materialisation.wasRecentlyMaterialised(path: relative, at: now))
         // The folder's own date says nothing about when the document was saved.
-        if isPackage { signals.contentAge = now.timeIntervalSince(modifiedAt) }
+        if isPackage {
+            signals.contentAge = now.timeIntervalSince(modifiedAt)
+            signals.isPackage = true
+        }
         let verdict = resolver.assessLive(signals)
 
         if inspector.hasUnresolvedConflict(url), !status.unresolvedConflicts.contains(relative) {
@@ -801,9 +819,9 @@ public actor ProjectEngine {
         }
 
         // Alone in the folder there is nobody to wait for.
-        if author == nil, event.event.type == .removed, await peerAwareness().isEmpty {
+        if author == nil, event.event.type.isUnwitnessable, await peerAwareness().isEmpty {
             var alone = entry
-            alone.authorID = await resolveRemoval(entry)
+            alone.authorID = await resolveUnclaimed(entry)
             await commit(alone)
             return
         }
@@ -906,8 +924,8 @@ public actor ProjectEngine {
             }
             if force || now >= pending.until {
                 var entry = pending.entry
-                if entry.event?.type == .removed {
-                    entry.authorID = await resolveRemoval(entry)
+                if entry.event?.type.isUnwitnessable == true {
+                    entry.authorID = await resolveUnclaimed(entry)
                 } else if let nodeID = entry.nodeID, let event = entry.event,
                           let node = try? store.node(id: nodeID) {
                     // After the full wait, iCloud has caught up, so no name does
@@ -929,9 +947,21 @@ public actor ProjectEngine {
     ///
     /// A deletion is matched on the file rather than on its dedup key: the key
     /// carries a time, and each Mac only knows when the file vanished from its own
-    /// disk, which with sync in between can be hours apart.
+    /// disk, which with sync in between can be hours apart. A move likewise, by
+    /// when it was seen: its key carries the file's own date, which a move does
+    /// not change, so an old move of the same file would otherwise do.
     private func isExplained(_ entry: Entry) -> Bool {
         (try? store.read { db in
+            if let type = entry.event?.type, type == .moved || type == .renamed,
+               let nodeID = entry.nodeID {
+                return try Bool.fetchOne(db, sql: """
+                    SELECT EXISTS(SELECT 1 FROM entry WHERE nodeID = ? AND eventType IN (?, ?)
+                                  AND authorID IS NOT NULL AND isSuperseded = 0
+                                  AND id <> ? AND observedAt >= ?)
+                    """, arguments: [nodeID, FileEventType.moved.rawValue,
+                                     FileEventType.renamed.rawValue, entry.id,
+                                     entry.observedAt.addingTimeInterval(-24 * 3600)]) ?? false
+            }
             if entry.event?.type == .removed, let nodeID = entry.nodeID {
                 return try Bool.fetchOne(db, sql: """
                     SELECT EXISTS(SELECT 1 FROM entry WHERE nodeID = ? AND eventType = ?
@@ -976,13 +1006,13 @@ public actor ProjectEngine {
             .filter { seen.insert($0.id).inserted }
     }
 
-    /// Who deleted a file nobody else has claimed.
+    /// Who deleted or moved a file nobody else has claimed.
     ///
-    /// Every Mac whose app was running when it vanished would have said so, so
-    /// those are ruled out; if only this one is left, it was us. A deletion found
-    /// in the history replayed after a restart happened while nobody here was
-    /// watching, at a time nobody knows, and stays without a name.
-    private func resolveRemoval(_ entry: Entry) async -> UUID? {
+    /// Every Mac whose app was running when it happened would have said so, so
+    /// those are ruled out; if only this one is left, it was us. One found in the
+    /// history replayed after a restart happened while nobody here was watching,
+    /// at a time nobody knows, and stays without a name.
+    private func resolveUnclaimed(_ entry: Entry) async -> UUID? {
         guard entry.event?.backfilled != true else { return nil }
         let verdict = resolver.inferBackfill(changeAt: entry.createdAt,
                                              selfMember: identity.member.id,
@@ -1053,4 +1083,10 @@ public actor ProjectEngine {
     public func rescan() async {
         await catchUp(trustingOwnAwakeWindows: false)
     }
+}
+
+private extension FileEventType {
+    /// Changes that leave nothing on this disk to say who made them: a file
+    /// that vanished, or one sync may have moved here on somebody else's behalf.
+    var isUnwitnessable: Bool { self == .removed || self == .moved || self == .renamed }
 }
