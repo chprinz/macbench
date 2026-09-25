@@ -139,4 +139,5 @@ cd MacBenchCore && swift test    # the core tests alone
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+[PolyForm Noncommercial 1.0.0](LICENSE). Free to use, change and share for
+anything noncommercial. Selling it, or using it commercially, is not allowed.
