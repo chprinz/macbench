@@ -114,6 +114,8 @@ struct ComposerView: View {
         } isTargeted: { isDropTarget = $0 }
         .onChange(of: model.selection) { _, _ in attachedNode = defaultNode }
         .onChange(of: model.selectedFile) { _, _ in attachedNode = defaultNode }
+        .onChange(of: model.searchPick?.id) { _, _ in attachedNode = defaultNode }
+        .onChange(of: model.isSearching) { _, _ in attachedNode = defaultNode }
         .onAppear { attachedNode = defaultNode }
     }
 

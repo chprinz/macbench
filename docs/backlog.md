@@ -15,10 +15,6 @@ someone's head. Newest observations at the top of each section.
 
 ## Rough edges
 
-- **Search leaves the two columns out of step.** Typing in the search field
-  replaces the middle column, but the stream on the right keeps showing the
-  previous selection — in the activity and task views too, where the middle
-  column is the whole point of the view.
 - **No way to mark an entry unread again** after reading it by accident.
 - **The timeline stops at 400 entries** with no way to load more and nothing
   saying it stopped. It matters more now that the activity list is the widest

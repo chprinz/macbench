@@ -166,7 +166,29 @@ final class AppModel {
     /// stream showing nothing but tasks.
     var taskFilter = TimelineFilter.tasks { didSet { refreshDetail(); persistFilters() } }
     var sidebarFilter: SidebarFilter = .all { didSet { persistFilters() } }
-    var searchText = "" { didSet { refreshSearch() } }
+    var searchText = "" {
+        didSet {
+            refreshSearch()
+            // Starting or ending a search changes what the column beside it is
+            // about. It used to go on showing the selection from before, beside
+            // results that had nothing to do with it.
+            if searchText.isEmpty != oldValue.isEmpty {
+                searchPick = nil
+                refreshDetail()
+            }
+        }
+    }
+    var isSearching: Bool { !searchText.isEmpty }
+    /// The line picked among the search results. The conversation column shows
+    /// what was said around it, as it does beside the feed; kept apart from
+    /// `selectedEntry` so that ending the search puts back what was there.
+    var searchPick: TimelineItem? {
+        didSet {
+            guard searchPick?.id != oldValue?.id else { return }
+            if let searchPick { flash(searchPick.id) }
+            refreshDetail()
+        }
+    }
 
     var timeline: [TimelineItem] = []
     /// Every task, when the sidebar points at Tasks. The middle column shows these
@@ -684,6 +706,10 @@ final class AppModel {
 
     func refreshDetail() {
         guard let viewer = identity?.member.id else { return }
+        if isSearching {
+            refreshSearchContext(viewer: viewer)
+            return
+        }
         switch selection {
         case .openTasks: refreshTaskList(viewer: viewer)
         case .activity: refreshActivity(viewer: viewer)
@@ -733,6 +759,26 @@ final class AppModel {
         activity = (try? store.timeline(scope: .activity, filter: filter, viewer: viewer)) ?? []
         tasks = []
         refreshContext(in: activity, viewer: viewer)
+    }
+
+    /// Beside the search results: the conversation around the result picked,
+    /// and nothing until one is.
+    private func refreshSearchContext(viewer: UUID) {
+        if let current = searchPick,
+           let fresh = searchResults.entries.first(where: { $0.id == current.id }) {
+            searchPick = fresh
+        }
+        if let file = searchPickFile {
+            timeline = (try? store.timeline(scope: .file(file), viewer: viewer)) ?? []
+        } else if let projectID = searchPick?.entry.projectID {
+            timeline = (try? store.timeline(scope: .project(projectID), viewer: viewer)) ?? []
+        } else {
+            timeline = []
+        }
+    }
+
+    private var searchPickFile: UUID? {
+        searchPick?.node.flatMap { $0.isPlaceholder ? nil : $0.id }
     }
 
     private func refreshContext(in list: [TimelineItem], viewer: UUID) {
@@ -1021,6 +1067,9 @@ final class AppModel {
     /// several. Picking a file in a cross-project list settles it, which is what
     /// makes it possible to answer a task from the task list.
     var currentProjectID: UUID? {
+        // While searching, the column beside the results is about the result
+        // picked, and so is anything written into it.
+        if isSearching { return searchPick?.entry.projectID }
         if let selectedFile, let node = try? store.node(id: selectedFile) { return node.projectID }
         return switch selection {
         case .project(let id): id
@@ -1035,9 +1084,13 @@ final class AppModel {
     }
 
     var selectedFileNode: Node? {
-        guard let selectedFile else { return nil }
-        return try? store.node(id: selectedFile)
+        guard let file = isSearching ? searchPickFile : selectedFile else { return nil }
+        return try? store.node(id: file)
     }
+
+    /// The line the conversation column is about, beside a list that spans
+    /// projects: the feed, the tasks, or the search results.
+    var contextEntry: TimelineItem? { isSearching ? searchPick : selectedEntry }
 
     /// Reveals a file in place: points the sidebar at the folder that holds it and
     /// selects it in the list, so the surrounding context comes along.

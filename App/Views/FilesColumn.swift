@@ -145,7 +145,8 @@ struct StreamColumn: View {
     }
 
     private var isCrossProjectList: Bool {
-        switch model.selection {
+        if model.isSearching { return true }
+        return switch model.selection {
         case .openTasks, .activity: true
         case .project, .node: false
         }
@@ -153,7 +154,7 @@ struct StreamColumn: View {
 
     private var entryContext: some View {
         HStack(spacing: 6) {
-            if let entry = model.selectedEntry {
+            if let entry = model.contextEntry {
                 Image(systemName: model.selectedFileNode == nil ? "folder" : "doc.text")
                     .foregroundStyle(Color.accentColor)
                 Text(model.selectedFileNode?.name ?? projectName(entry))
@@ -218,7 +219,10 @@ struct StreamColumn: View {
     }
 
     private var emptyTitle: LocalizedStringKey {
-        switch model.selection {
+        if model.isSearching {
+            return model.searchPick == nil ? "Pick a result" : "Nothing about this file yet"
+        }
+        return switch model.selection {
         case .openTasks: model.selectedEntry == nil ? "Pick a task" : "Nothing about this file yet"
         case .activity: model.selectedEntry == nil ? "Pick an entry" : "Nothing about this file yet"
         case .project, .node:
@@ -227,7 +231,12 @@ struct StreamColumn: View {
     }
 
     private var emptyHint: LocalizedStringKey {
-        switch model.selection {
+        if model.isSearching {
+            return model.searchPick == nil
+                ? "Pick one on the left and this shows what was said around it — the file it is about, and the changes to it. An answer is written here too."
+                : "Write the first note below."
+        }
+        return switch model.selection {
         case .openTasks, .activity: model.selectedEntry == nil
             ? "Pick one on the left and this shows what was said around it — the file it is about, and the changes to it. An answer is written here too."
             : "Write the first note below."

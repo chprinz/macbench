@@ -47,6 +47,16 @@ struct TimelineView: View {
                         withAnimation { proxy.scrollTo(bottomAnchor, anchor: .bottom) }
                     }
                     .onChange(of: items.count) { _, _ in restorePosition(proxy) }
+                    .onChange(of: model.flashingEntry) { _, id in
+                        // Picking a line elsewhere brings it into view here. A
+                        // result from a search can be months back, and the
+                        // column opening at the end left it to be scrolled to.
+                        guard let id, items.contains(where: { $0.id == id }) else { return }
+                        hasRestoredPosition = true
+                        DispatchQueue.main.async {
+                            withAnimation { proxy.scrollTo(id, anchor: .center) }
+                        }
+                    }
                     .onAppear { restorePosition(proxy) }
                 }
             }
@@ -54,6 +64,7 @@ struct TimelineView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onChange(of: model.selection) { _, _ in reset() }
         .onChange(of: model.selectedFile) { _, _ in reset() }
+        .onChange(of: model.isSearching) { _, _ in reset() }
     }
 
     private func reset() {
@@ -71,8 +82,11 @@ struct TimelineView: View {
         }
         guard !hasRestoredPosition, !items.isEmpty else { return }
         hasRestoredPosition = true
+        let flashing = model.flashingEntry.flatMap { id in items.contains { $0.id == id } ? id : nil }
         DispatchQueue.main.async {
-            if let unreadAnchor {
+            if let flashing {
+                proxy.scrollTo(flashing, anchor: .center)
+            } else if let unreadAnchor {
                 proxy.scrollTo(unreadAnchor, anchor: .top)
             } else {
                 proxy.scrollTo(bottomAnchor, anchor: .bottom)

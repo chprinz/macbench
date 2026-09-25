@@ -44,12 +44,32 @@ struct SearchResultsView: View {
                 if !model.searchResults.entries.isEmpty {
                     Section("Written about") {
                         ForEach(model.searchResults.entries) { item in
-                            EntryRow(item: item, showsDay: true)
+                            // Picked like a line in the feed: the column beside
+                            // it then shows what was said around it.
+                            EntryRow(item: item, selectable: false, showsDay: true)
+                                .padding(.horizontal, 8)
+                                .background(background(for: item), in: .rect(cornerRadius: 6))
+                                .animation(.easeOut(duration: 0.45), value: model.flashingEntry)
+                                .contentShape(.rect)
+                                .onTapGesture(count: 2) {
+                                    model.searchPick = item
+                                    if let node = item.node, !node.isPlaceholder { model.open(node) }
+                                }
+                                .onTapGesture {
+                                    model.searchPick = item
+                                    model.isStreamVisible = true
+                                }
                         }
                     }
                 }
             }
             .listStyle(.inset)
         }
+    }
+
+    private func background(for item: TimelineItem) -> Color {
+        if model.flashingEntry == item.id { return .accentColor.opacity(0.28) }
+        if model.searchPick?.id == item.id { return .accentColor.opacity(0.12) }
+        return .clear
     }
 }
