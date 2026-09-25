@@ -15,7 +15,6 @@ someone's head. Newest observations at the top of each section.
 
 ## Rough edges
 
-- **No way to mark an entry unread again** after reading it by accident.
 - **The picked line is forgotten on relaunch.** Latest activity and Tasks restore
   which list you were in, not which entry you had open, so the column beside them
   starts empty every morning.
@@ -46,13 +45,8 @@ someone's head. Newest observations at the top of each section.
   scratch when only an entry changed.
 - **`Selection.node` covers both files and folders**, so several call sites have
   to ask which one it is. Splitting it would remove those branches.
-- **No "mark as unread".** The dwell before an entry counts as read is 900 ms,
-  which is short enough that glancing at the stream clears it.
-- **A retraction cannot be undone.** `isRetracted` is a patch like any other, so
-  the reverse patch would work; there is no way to reach it.
 - **File names lose their middle** at the stream's default width. Either the
   default is too narrow or the name needs its own line.
-- **The window title is the app's name**, not the project's.
 
 - **`AssigneeFilter.unassigned` is unreachable from the interface.** The store
   supports it and a test covers it; the menu offers only "anyone" or a person,

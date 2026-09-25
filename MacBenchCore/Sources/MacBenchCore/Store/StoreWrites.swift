@@ -647,6 +647,17 @@ extension Store {
         }
     }
 
+    /// Takes back having read these, for somebody who read one by accident.
+    public func markUnread(entryIDs: [UUID], member: UUID) throws {
+        guard !entryIDs.isEmpty else { return }
+        try write { db in
+            for id in entryIDs {
+                try db.execute(sql: "DELETE FROM readState WHERE entryID = ? AND memberID = ?",
+                               arguments: [id, member])
+            }
+        }
+    }
+
     /// A file's changes, without what was written about it. Picking a file is
     /// looking at its changes — the row already says what they were — while a
     /// message still has to be on screen to count as read.

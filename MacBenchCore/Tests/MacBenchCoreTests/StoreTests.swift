@@ -306,6 +306,34 @@ struct ViewTests {
         #expect(try f.store.activitySignals(viewer: f.ben.id).unreadTotal == 0)
     }
 
+    @Test("Something read by accident can be put back to unread, for that person only")
+    func markUnread() throws {
+        let f = try Fixture()
+        let file = try f.node("a.psd")
+        let entry = Entry(projectID: f.project.id, nodeID: file.id, authorID: f.anna.id,
+                          createdAt: t0, observedAt: t0, kind: .message, text: "schau mal")
+        try f.store.merge(entry: entry)
+        try f.store.markRead(entryIDs: [entry.id], member: f.ben.id, at: t0)
+        try f.store.markRead(entryIDs: [entry.id], member: f.anna.id, at: t0)
+        try f.store.markUnread(entryIDs: [entry.id], member: f.ben.id)
+        #expect(try f.store.activitySignals(viewer: f.ben.id).unreadTotal == 1)
+        #expect(try f.store.timeline(scope: .activity, viewer: f.ben.id).first?.isUnread == true)
+        #expect(try f.store.activitySignals(viewer: f.anna.id).unreadTotal == 0)
+    }
+
+    @Test("A deleted message comes back when the delete is undone")
+    func retractionCanBeUndone() throws {
+        let f = try Fixture()
+        let entry = Entry(projectID: f.project.id, authorID: f.anna.id,
+                          createdAt: t0, observedAt: t0, kind: .message, text: "doch nicht")
+        try f.store.merge(entry: entry)
+        try f.store.apply(patch: EntryPatchRecord(entryID: entry.id, isRetracted: true), at: t0)
+        #expect(try f.store.timeline(scope: .activity, viewer: f.ben.id).isEmpty)
+        try f.store.apply(patch: EntryPatchRecord(entryID: entry.id, isRetracted: false),
+                          at: t0.addingTimeInterval(5))
+        #expect(try f.store.timeline(scope: .activity, viewer: f.ben.id).map(\.entry.text) == ["doch nicht"])
+    }
+
     @Test("Picking a file reads its changes, not what was written about it")
     func pickingReadsChangesOnly() throws {
         let f = try Fixture()

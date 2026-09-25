@@ -55,6 +55,7 @@ struct RootView: View {
                         }
                 } detail: {
                     FilesColumn()
+                        .navigationTitle(model.windowTitle)
                         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
                             filesWidth = width
                         }

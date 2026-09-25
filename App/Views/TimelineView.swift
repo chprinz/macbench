@@ -266,7 +266,9 @@ struct EntryRow: View {
         }
         .padding(.vertical, item.entry.kind == .message ? 8 : 2)
         .onHover { isHovering = $0 }
-        .contextMenu { EntryMenu(item: item, draft: $draft, offersStream: showsContextAction) }
+        .contextMenu {
+            EntryMenu(item: item, folded: folded, draft: $draft, offersStream: showsContextAction)
+        }
     }
 
     /// The time, in a column of its own down the left edge. It used to follow the
@@ -476,7 +478,7 @@ struct EntryRow: View {
         if draft == nil {
             let isShown = isHovering || isPicked
             RowActions(node: fileNode, showsFileActions: !showsPath) {
-                EntryMenu(item: item, draft: $draft, offersStream: showsContextAction)
+                EntryMenu(item: item, folded: folded, draft: $draft, offersStream: showsContextAction)
             }
             .hoverReveal(isShown)
         }
@@ -605,7 +607,10 @@ struct AuthorName: View {
 
 struct EntryMenu: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.undoManager) private var undoManager
     let item: TimelineItem
+    /// The changes the line sums up, when it sums up more than one.
+    var folded: [TimelineItem] = []
     @Binding var draft: String?
     /// In the lists beside the stream column: the way to this line's conversation.
     var offersStream = false
@@ -692,13 +697,25 @@ struct EntryMenu: View {
             Divider()
         }
 
+        if model.canMarkUnread(item) {
+            Button("Mark as Unread") {
+                model.markUnread(folded.isEmpty ? [item] : folded)
+            }
+        }
         Button("Copy Text") {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(item.entry.text, forType: .string)
         }
         if model.canEdit(item.entry) {
             Button("Delete", role: .destructive) {
-                Task { await model.retract(item.entry) }
+                let entry = item.entry
+                Task { await model.retract(entry) }
+                // Gone from every list the moment it is deleted, so the one way
+                // back is Edit ▸ Undo, where a Mac user looks for it.
+                undoManager?.registerUndo(withTarget: model) { model in
+                    Task { @MainActor in await model.unretract(entry) }
+                }
+                undoManager?.setActionName(String(localized: "Delete"))
             }
         }
     }

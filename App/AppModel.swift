@@ -83,6 +83,7 @@ final class AppModel {
     var selection: Selection = .activity {
         didSet {
             guard selection != oldValue else { return }
+            keptUnread.removeAll()
             activityDepth = 1
             streamDepth = 1
             filter.searchText = ""
@@ -99,6 +100,7 @@ final class AppModel {
     var selectedFile: UUID? {
         didSet {
             guard selectedFile != oldValue else { return }
+            keptUnread.removeAll()
             streamDepth = 1
             readHiddenChanges()
             refreshDetail()
@@ -1106,6 +1108,20 @@ final class AppModel {
     /// The project the composer would write into, or `nil` when the view spans
     /// several. Picking a file in a cross-project list settles it, which is what
     /// makes it possible to answer a task from the task list.
+    /// The window's title: the project you are in. The app's own name said
+    /// nothing a Mac does not already say in the menu bar, and in the Window menu
+    /// and Mission Control it could not tell two windows apart. Over the feed
+    /// and the tasks, which span projects, it stays the app's name; the column
+    /// under it already says which list it is.
+    var windowTitle: String {
+        let projectID: UUID? = switch selection {
+        case .project(let id): id
+        case .node(let id): (try? store.node(id: id))?.projectID
+        case .activity, .openTasks: nil
+        }
+        return projectID.flatMap { id in projects.first { $0.id == id }?.name } ?? Brand.name
+    }
+
     var currentProjectID: UUID? {
         // While searching, the column beside the results is about the result
         // picked, and so is anything written into it.
@@ -1203,6 +1219,12 @@ final class AppModel {
         await patch(EntryPatchRecord(entryID: entry.id, isRetracted: true), in: entry.projectID)
     }
 
+    /// Undoing a delete. A retraction is a patch like any other, so taking it
+    /// back is the reverse patch, and it reaches the other Macs the same way.
+    func unretract(_ entry: Entry) async {
+        await patch(EntryPatchRecord(entryID: entry.id, isRetracted: false), in: entry.projectID)
+    }
+
     func assign(_ entry: Entry, to memberID: UUID?) async {
         await patch(EntryPatchRecord(entryID: entry.id, assigneeID: .some(memberID)),
                     in: entry.projectID)
@@ -1258,8 +1280,27 @@ final class AppModel {
     }
 
     func markVisibleRead(_ ids: [UUID]) {
+        let ids = ids.filter { !keptUnread.contains($0) }
         guard let viewer = identity?.member.id, !ids.isEmpty else { return }
         try? store.markRead(entryIDs: ids, member: viewer)
+    }
+
+    /// Entries put back to unread by hand. The line is still on screen when the
+    /// menu closes, and the dwell would read it again straight away; it stays
+    /// unread until the list has been about something else.
+    private var keptUnread: Set<UUID> = []
+
+    func markUnread(_ items: [TimelineItem]) {
+        guard let viewer = identity?.member.id else { return }
+        let ids = items.map(\.entry.id)
+        keptUnread.formUnion(ids)
+        try? store.markUnread(entryIDs: ids, member: viewer)
+    }
+
+    /// Whether a line can be put back to unread: read, and not your own, which
+    /// is never news to you.
+    func canMarkUnread(_ item: TimelineItem) -> Bool {
+        !item.isUnread && item.entry.authorID != identity?.member.id
     }
 
     func markAllRead(project: UUID?) {
