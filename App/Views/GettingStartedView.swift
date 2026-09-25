@@ -14,84 +14,60 @@ struct GettingStartedView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 26) {
+            VStack(alignment: .leading, spacing: 22) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Getting Started").font(.largeTitle.weight(.semibold))
-                    Text("How the window is laid out, what writing does and whom it reaches, and what to do when something looks off. This page is in the Help menu whenever you want it again.")
+                    Text("The essentials. This page stays in the Help menu.")
                         .foregroundStyle(.secondary)
                 }
 
                 Topic(symbol: "rectangle.split.3x1", title: "Three columns") {
-                    Point("**Left:** Latest activity, Tasks, and your projects with their folders.")
-                    Point("**Middle:** what you picked on the left: the files in a folder, every open task, or everything that has happened.")
-                    Point("**Right:** the messages about what you picked in the middle, with the field to write in at the bottom. Messages in the toolbar shows and hides this column.")
+                    Point("Left: your projects, Latest activity and Tasks. Middle: what you picked there. Right: the messages about it, with the field to write in.")
                 }
 
                 Topic(symbol: "text.bubble", title: "Messages") {
-                    Point("Pick a file or folder, then write in the field at the bottom right. The message stays with that file, even when it is renamed or moved.")
-                    Point("Return sends, Shift-Return starts a new line. To answer a message, choose Reply from its menu (Control-click).")
-                    Point("Turn on **Task** before sending to make it something to do. Open tasks collect under Tasks in the sidebar until somebody ticks them off.")
-                    Point("There is no server. Messages travel with your files, through iCloud Drive, Dropbox or your NAS, and arrive on the other Macs when the sync delivers them.")
+                    Point("Pick a file and write in the field on the right. Return sends. The message stays with the file, even when it moves.")
+                    Point("There is no server: messages arrive with the sync of your folder.")
                 }
 
-                Topic(symbol: "at", title: "Who a message is for") {
-                    Point("**For**, or @ and a name in the text, addresses a message to one person. Their name appears in front of it in their colour, and they get a notification.")
-                    Point("With Task on, it is work for them: it is listed under their name in Tasks. Without it, it is a heads-up: a notification, nothing to tick off, and it does not appear in Tasks.")
-                    Point("Pick the person before you send. Changing For later, from the message's menu, changes the name shown, but only a message that arrives already addressed is sure to notify.")
-                    Point("A reply to something you wrote notifies you too. File changes never do.")
+                Topic(symbol: "at", title: "Task and For") {
+                    Point("**Task** turns a message into something to tick off. **For**, or @name, notifies that person.")
+                    Point("For without Task is just a heads-up: nothing to tick off, not listed under Tasks. Pick the person before sending.")
                 }
 
                 Topic(symbol: "doc", title: "Files") {
-                    Point("Double-click a file to open it in its app, as in the Finder. The same works on any line in the messages that is about a file.")
-                    Point("Space or ⌘Y shows a preview. A file with a cloud icon is not on this Mac yet: the preview leaves it in the cloud, opening it downloads it.")
-                    Point("Nothing here moves, renames or deletes a file. That stays the Finder's job.")
+                    Point("Double-click opens a file. Space previews it without downloading it.")
                 }
 
-                Topic(symbol: "circle.fill", title: "Unread") {
-                    Point("A line counts as read once it has been on screen for a moment. The number beside Latest activity is what you have not read yet, and a dot in the sidebar marks the folders it is in.")
-                    Point("Latest activity opens where you stopped, at a line marking the spot. Your own entries are never unread.")
-                    Point("Mark as Unread, in a line's menu, puts it back. The menu of a project or folder marks it all as read; ⇧⌘K marks everything.")
+                Topic(symbol: "eye", title: "Unread") {
+                    Point("What you have seen counts as read. Latest activity opens where you stopped.")
                 }
 
                 Topic(symbol: "square.and.pencil", title: "Quick note") {
                     if let shortcut = model.quickCaptureShortcut {
-                        Point("\(shortcut) opens a small window from any app, even with every window closed. Pick the project, write, press Return.")
+                        Point("\(shortcut) opens a quick note from any app.")
                     } else {
-                        Point("A shortcut opens a small window from any app, even with every window closed. Pick the project, write, press Return. There is none set right now; choose one in Settings, under General.")
+                        Point("A quick note opens from any app, with a shortcut you set in Settings.")
                     }
-                    Point("Task and @name work as in the field on the right. A quick note belongs to the project, not to a file.")
                 }
 
-                Topic(symbol: "clock.arrow.circlepath", title: "The change stream") {
-                    Point("Every change to a file becomes a line. Repeated saves of one file are gathered for twenty minutes and then shown as one line; until then they are listed below the messages with a countdown.")
-                    Point("Too much? In Settings, under Projects, set **Change stream** to *Only bigger events* (files added, deleted, moved or renamed) or to *Nothing — only what we write*. Messages always show, and the setting is yours alone.")
-                }
-
-                Topic(symbol: "archivebox", title: "Archiving") {
-                    Point("**Archive Project**, in a project's menu in the sidebar, is for a job that is done. It is no longer watched and leaves the lists; its history is kept. It comes back from Settings, under Projects, and whatever changed meanwhile is found by comparing the folder.")
-                    Point("Deleted files move to the archive after a while, 90 days unless you change it in Settings, under General. They leave the lists and search; what was written about them is kept.")
-                    Point("Both apply only on your Mac. Nothing is deleted, for you or for anybody else.")
+                Topic(symbol: "line.3.horizontal.decrease", title: "Less in the list") {
+                    Point("Too many file changes? Turn down the change stream in Settings, under Projects. Only for you.")
+                    Point("A project is finished? Archive Project in its menu. Settings brings it back.")
                 }
 
                 Topic(symbol: "exclamationmark.triangle", title: "Messages at the top of the window") {
-                    Point("Problems with the sync are shown, never hidden. The × puts one away; it comes back on the next start if the problem is still there.")
-                    Banner("… is not being watched",
-                           "The folder cannot be opened: renamed, moved, or on a drive that is not connected. Reconnect it, or add it again. The reason stays in Settings, under Projects, and changes made meanwhile are found by comparing the folder once it can be read.")
-                    Banner("iCloud is not delivering changes from …",
-                           "Another Mac has announced changes that have not arrived for over ten minutes. Check that iCloud Drive is syncing on both Macs; the changes show up by themselves. A shorter wait appears only at the foot of the sidebar and needs nothing from you.")
-                    Banner("… changes in … have not reached the others yet",
-                           "This Mac could not write its log into the folder. Nothing is lost: the changes are kept here and written once it works again.")
-                    Banner("Could not read … / Could not look for the other Macs …",
-                           "Something in the shared folder could not be read, so entries may be missing until it can. If it lasts, check that the folder syncs.")
-                    Banner("… is running a newer version",
-                           "Somebody has updated. Update on this Mac too, to see what they write.")
-                    Banner("iCloud made a conflict copy of …",
-                           "Two people saved the same file at the same moment. Open the folder and keep the version you want.")
+                    Banner("… is not being watched", "Folder moved, or its drive is not connected.")
+                    Banner("iCloud is not delivering changes from …", "Check iCloud Drive on both Macs.")
+                    Banner("… changes in … have not reached the others yet", "Nothing is lost; they follow later.")
+                    Banner("Could not read … / Could not look for the other Macs …", "Entries may be missing until the sync catches up.")
+                    Banner("… is running a newer version", "Update this Mac.")
+                    Banner("iCloud made a conflict copy of …", "Open the folder and keep one version.")
                 }
 
                 Topic(symbol: "wrench.and.screwdriver", title: "Two common mistakes when setting up") {
-                    Point("**Adding a folder inside the project.** A project keeps one shared history in its top folder. If somebody has already added it, add the same folder they did. A folder inside it would start a second history that nobody else sees. When this happens you are warned and offered the right folder.")
-                    Point("**Leaving Start at login off.** Changes are recorded with your name only while the app runs. What you do while it is closed is found later by comparing the folder, with a ~ before the time and often without your name. Closing the window does not stop it; it keeps watching in the background. The switch is in Settings, under General.")
+                    Point("**Adding a folder inside a project.** Add the same top folder as the others, or you start a second history.")
+                    Point("**Start at login off.** Changes carry your name only while the app runs. Leave it on.")
                 }
 
                 Topic(symbol: "keyboard", title: "Keyboard shortcuts") {
@@ -106,7 +82,6 @@ struct GettingStartedView: View {
                         Key("⇧⌘" + Self.tasksLetter, "Tasks")
                         Key(String(localized: "Space") + " / ⌘Y", "Preview the picked file")
                         Key("⇧⌘K", "Mark everything as read")
-                        Key("↩", "Send")
                         Key("⇧↩", "New line")
                         Key("esc", "Clear the search")
                         Key("⌘,", "Settings")
