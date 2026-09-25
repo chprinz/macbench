@@ -32,6 +32,9 @@ public actor ProjectEngine {
         /// so until the app was restarted — and a warning that is not true any
         /// more teaches people to ignore the ones that are.
         public var problems: [Problem: String] = [:]
+        /// Records waiting to be written to this Mac's log. Everything here has
+        /// happened on this Mac and has not reached the others yet.
+        public var unwrittenRecords = 0
     }
 
     public enum Problem: Int, Sendable, Hashable, Comparable, CaseIterable {
@@ -56,6 +59,7 @@ public actor ProjectEngine {
     private var identity: LocalIdentity
     private let clock: any Clock
     private let writer: DeviceLogWriter
+    private var unwritten: UnwrittenQueue
     private let peerSync: PeerSync
     private let inspector = ICloudInspector()
     private let materialisation = MaterialisationLog()
@@ -115,6 +119,9 @@ public actor ProjectEngine {
         self.identity = identity
         self.clock = clock
         self.writer = try DeviceLogWriter(root: root, identity: identity, clock: clock)
+        self.unwritten = UnwrittenQueue(url: supportDirectory
+            .appending(path: "unwritten", directoryHint: .isDirectory)
+            .appending(path: "\(projectID.uuidString).jsonl"))
         self.peerSync = PeerSync(store: store, projectID: projectID, selfDeviceID: identity.deviceID)
         self.lineCounter = LineCounter(
             snapshotDirectory: supportDirectory.appending(path: "line-snapshots", directoryHint: .isDirectory))
@@ -141,6 +148,8 @@ public actor ProjectEngine {
         exclusions = ExclusionRules(userExcludedPaths: (try? store.excludedPaths(for: projectID)) ?? [])
         _ = try? store.foldDocumentPackages(projectID: projectID)
         try? await writer.recordHeartbeat(now: clock.now)
+        // Left over from the last run, before anything new goes behind it.
+        if !unwritten.isEmpty { await record([]) }
 
         // Read what the others said first. A change of theirs that is already
         // explained needs no guessing when our own watcher reports it.
@@ -275,7 +284,7 @@ public actor ProjectEngine {
             if batch.count >= 500 { flush() }
         }
         flush()
-        _ = try? await record(registrations)
+        await record(registrations)
         try? store.setFSEventCursor(nil, scannedAt: now, for: projectID)
         rememberHistoryUUID()
     }
@@ -348,7 +357,7 @@ public actor ProjectEngine {
             updated.fileSize = item.fileSize
             updated.lastSeenAt = now
             try? store.upsert(node: updated, inode: item.fileIdentifier.map(Int64.init))
-            _ = try? await record([.nodeRename(NodeRenameRecord(
+            await record([.nodeRename(NodeRenameRecord(
                 id: node.id, from: from, to: item.relativePath, at: now,
                 isDirectory: item.isDirectory))])
             events.append(CoalescedEvent(
@@ -360,14 +369,14 @@ public actor ProjectEngine {
         for node in diff.removed where seenHere.contains(node.id) {
             try? store.setNodeState(.deleted, id: node.id, at: now)
             lineCounter.forget(node.id)
-            _ = try? await record([.nodeState(NodeStateRecord(id: node.id, state: .deleted, at: now))])
+            await record([.nodeState(NodeStateRecord(id: node.id, state: .deleted, at: now))])
             events.append(CoalescedEvent(
                 nodeID: node.id, relativePath: node.relativePath, isDirectory: node.isDirectory,
                 event: FileEvent(type: .removed, backfilled: true),
                 contentDate: node.contentModifiedAt ?? now, observedAt: now))
         }
 
-        if !registrations.isEmpty { _ = try? await record(registrations) }
+        if !registrations.isEmpty { await record(registrations) }
 
         for event in events {
             let verdict = resolver.inferBackfill(changeAt: event.contentDate,
@@ -470,6 +479,7 @@ public actor ProjectEngine {
     }
 
     private func periodic() async {
+        if !unwritten.isEmpty { await record([]) }
         try? store.archiveDeletedNodes(olderThan: archiveAfterDays, now: clock.now)
         await pullPeers()
         await flushDeferred(force: false)
@@ -610,7 +620,7 @@ public actor ProjectEngine {
             try? store.setNodeState(.present, id: node.id, at: now)
             let isRename = (node.relativePath as NSString).deletingLastPathComponent
                 == (relative as NSString).deletingLastPathComponent
-            _ = try? await record([.nodeRename(NodeRenameRecord(
+            await record([.nodeRename(NodeRenameRecord(
                 id: node.id, from: node.relativePath, to: relative, at: now,
                 isDirectory: isDirectory))])
             var event = RawFileEvent(nodeID: node.id, relativePath: relative,
@@ -654,7 +664,7 @@ public actor ProjectEngine {
                         firstSeenAt: existing?.firstSeenAt ?? modifiedAt, lastSeenAt: now)
         try? store.upsert(node: node, inode: identifier.map(Int64.init))
         if existing == nil {
-            _ = try? await record([.node(NodeRecord(id: nodeID, path: relative,
+            await record([.node(NodeRecord(id: nodeID, path: relative,
                                                            isDirectory: isDirectory,
                                                            firstSeenAt: node.firstSeenAt))])
         }
@@ -800,28 +810,38 @@ public actor ProjectEngine {
         }
         switch outcome {
         case .inserted, .replacedExisting:
-            // A failure is on the status already, from `record`.
-            guard (try? await record([.entry(EntryRecord(entry: entry))])) != nil else { return }
+            await record([.entry(EntryRecord(entry: entry))])
         case .duplicate, .updated:
             break  // the machine it happened on already said it
         }
         markAccountedFor(entry)
     }
 
-    /// Every record this Mac writes goes through here, so that a write that fails
-    /// is seen — most callers used to drop it with a `try?`, and a rename or a
-    /// new file the other Macs were never told about left no trace here — and
-    /// so that the next one that succeeds takes the warning back.
-    @discardableResult
-    private func record(_ bodies: [LogBody]) async throws -> [LogRecord] {
+    /// Every record this Mac writes goes through here.
+    ///
+    /// A write that fails does not lose what it was writing: the records wait in
+    /// `unwritten` and go first on the next write, in the order they happened,
+    /// with the time they happened. Until then the status says so — a warning
+    /// the next successful write takes back. Most callers used to drop a failure
+    /// with a `try?`, and a rename or a new file the other Macs were never told
+    /// about left no trace here.
+    private func record(_ bodies: [LogBody]) async {
+        let now = clock.now
+        let pending = unwritten.records + bodies.map { PendingRecord(body: $0, at: now) }
+        guard !pending.isEmpty else { return }
+        let before = await writer.lastSequence
         do {
-            let written = try await writer.append(bodies)
+            try await writer.append(pending)
+            unwritten.replace(with: [])
             status.problems[.log] = nil
-            return written
         } catch {
+            // A write that rolled over into a new segment can fail after the
+            // first part is on disk. Those are spent; only the rest waits.
+            let written = max(0, await writer.lastSequence - before)
+            unwritten.replace(with: Array(pending.dropFirst(written)))
             status.problems[.log] = error.localizedDescription
-            throw error
         }
+        status.unwrittenRecords = unwritten.records.count
     }
 
     /// Marks the file as indexed at its current state, now that the change to it
@@ -973,18 +993,18 @@ public actor ProjectEngine {
                           isTask: isTask, assigneeID: assignee, replyToID: replyTo,
                           categoryIDs: categories)
         try store.merge(entry: entry)
-        _ = try await record([.entry(EntryRecord(entry: entry))])
+        await record([.entry(EntryRecord(entry: entry))])
         return entry
     }
 
     public func patch(_ patch: EntryPatchRecord) async throws {
         let now = clock.now
         try store.apply(patch: patch, at: now)
-        _ = try await record([.entryPatch(patch)])
+        await record([.entryPatch(patch)])
     }
 
     public func announceSelf() async throws {
-        _ = try await record([.member(identity.member)])
+        await record([.member(identity.member)])
     }
 
     /// Somebody changed their own name or colour. The engine used to keep the
@@ -995,11 +1015,11 @@ public actor ProjectEngine {
         guard member.id == identity.member.id else { return }
         identity.member = member
         try await writer.update(member: member)
-        _ = try await record([.member(member)])
+        await record([.member(member)])
     }
 
     public func publish(categories: [Category]) async throws {
-        _ = try await record(categories.map { .category($0) })
+        await record(categories.map { .category($0) })
     }
 
     public func setArchiveAfterDays(_ days: Int) {

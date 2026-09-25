@@ -257,6 +257,8 @@ Sync being late must never look like nothing having happened.
   cannot be read (evicted, offline) stops the writer rather than letting it count
   from one again below where the others already are.
 - A devices folder that cannot be listed is reported, not read as an empty one.
+- A record this Mac cannot write to its log waits in a queue beside the index,
+  with the time it happened, and goes first on the next write that works.
 - A project whose index is empty — added again, or rebuilt — reads this Mac's own
   log back once, up to where it stood, so the rebuild covers both halves. Who this
   Mac is lives in `identity.json` beside the index, not in it, so a rebuilt index

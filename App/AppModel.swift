@@ -836,9 +836,13 @@ final class AppModel {
             // What the engine could not do: write its log, keep watching a folder
             // that was renamed under it. It used to go into a status nobody read,
             // which made a project that had stopped working look like a quiet one.
-            for (_, error) in status.problems.sorted(by: { $0.key < $1.key }) {
-                found.append(Banner(text: String(localized: "Something went wrong in \(name)"),
-                                    detail: error))
+            for (kind, error) in status.problems.sorted(by: { $0.key < $1.key }) {
+                // What it means for the others comes first: nothing is lost, it
+                // has only not left this Mac yet.
+                let text = kind == .log && status.unwrittenRecords > 0
+                    ? String(localized: "\(status.unwrittenRecords) changes in \(name) have not reached the others yet")
+                    : String(localized: "Something went wrong in \(name)")
+                found.append(Banner(text: text, detail: error))
             }
             if let reason = status.lastSync?.devicesUnreadable {
                 found.append(Banner(

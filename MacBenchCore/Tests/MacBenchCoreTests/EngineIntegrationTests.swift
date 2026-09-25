@@ -108,9 +108,9 @@ struct EngineIntegrationTests {
     /// indexed, looks live, says nothing is wrong, and is not being watched at all.
     /// The first-ever run of a project used to take exactly that branch.
     /// A log that could not be written for a minute used to say so until the
-    /// app was restarted, and most writes did not say so at all.
-    @Test("A log that cannot be written says so, and stops saying so once it can")
-    func logProblemComesAndGoes() async throws {
+    /// app was restarted — and what failed to go into it was gone for good.
+    @Test("What could not be written waits, keeps its time, and goes first once it can")
+    func unwrittenRecordsWait() async throws {
         let bench = try Bench()
         defer { bench.cleanUp() }
         _ = try await bench.engine.post(text: "eins")
@@ -119,12 +119,35 @@ struct EngineIntegrationTests {
         let segment = LogLayout.deviceDirectory(in: bench.root, device: bench.identity.deviceID)
             .appending(path: LogLayout.segmentName(1)).path(percentEncoded: false)
         try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: segment)
-        await #expect(throws: LogError.self) { try await bench.engine.post(text: "zwei") }
+        let failedAt = Date()
+        _ = try await bench.engine.post(text: "zwei")
         #expect(await bench.engine.status.problems[.log] != nil)
+        #expect(await bench.engine.status.unwrittenRecords == 1)
+        #expect(try bench.timeline().contains { $0.entry.text == "zwei" },
+                "kept here, not handed back to be sent twice")
 
+        // The app quits before the folder is writable again.
+        await bench.engine.stop()
         try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: segment)
-        _ = try await bench.engine.post(text: "drei")
-        #expect(await bench.engine.status.problems[.log] == nil)
+        try await Task.sleep(for: .milliseconds(20))
+        let relaunched = try ProjectEngine(projectID: bench.project.id, root: bench.root,
+                                           store: bench.store, identity: bench.identity,
+                                           supportDirectory: bench.support)
+        _ = try await relaunched.post(text: "drei")
+        #expect(await relaunched.status.problems[.log] == nil)
+        #expect(await relaunched.status.unwrittenRecords == 0)
+
+        let peer = try #require(DeviceLogReader.peers(in: bench.root).first)
+        let result = DeviceLogReader.read(peer: peer, after: 0)
+        #expect(result.isComplete)
+        let texts: [String] = result.records.compactMap {
+            if case .entry(let entry) = $0.body, entry.kind == .message { entry.text } else { nil }
+        }
+        #expect(texts == ["eins", "zwei", "drei"])
+        let zwei = try #require(result.records.first {
+            if case .entry(let entry) = $0.body { entry.text == "zwei" } else { false }
+        })
+        #expect(zwei.writtenAt <= failedAt.addingTimeInterval(0.01), "the time it happened, not the time it was written")
     }
 
     @Test("A folder is watched from the first run, not the second")

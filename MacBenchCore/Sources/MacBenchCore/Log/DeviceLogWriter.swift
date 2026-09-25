@@ -70,7 +70,15 @@ public actor DeviceLogWriter {
 
     @discardableResult
     public func append(_ bodies: [LogBody]) throws -> [LogRecord] {
-        guard !bodies.isEmpty else { return [] }
+        let now = clock.now
+        return try append(bodies.map { PendingRecord(body: $0, at: now) })
+    }
+
+    /// Records with the moment each happened, which may be earlier than now: a
+    /// record that could not be written at the time keeps its own.
+    @discardableResult
+    public func append(_ pending: [PendingRecord]) throws -> [LogRecord] {
+        guard !pending.isEmpty else { return [] }
         let dir = LogLayout.deviceDirectory(in: root, device: identity.deviceID)
         var written: [LogRecord] = []
         var payload = Data()
@@ -82,10 +90,10 @@ public actor DeviceLogWriter {
         var onDisk = manifest.lastSequence
 
         do {
-            for body in bodies {
+            for item in pending {
                 manifest.lastSequence += 1
                 let record = LogRecord(sequence: manifest.lastSequence, deviceID: identity.deviceID,
-                                       writtenAt: clock.now, body: body)
+                                       writtenAt: item.at, body: item.body)
                 var line = try JSONCoding.encoder().encode(record)
                 line.append(0x0A)
                 // Rotate before the segment grows past the cap, so one record never

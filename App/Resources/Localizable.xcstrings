@@ -168,6 +168,47 @@
         }
       }
     },
+    "%lld changes in %@ have not reached the others yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld change in %@ has not reached the others yet"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld changes in %@ have not reached the others yet"
+                }
+              }
+            }
+          }
+        },
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Änderung in %@ ist noch nicht bei den anderen angekommen"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Änderungen in %@ sind noch nicht bei den anderen angekommen"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld files": {
       "extractionState": "manual",
       "localizations": {
