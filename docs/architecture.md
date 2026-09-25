@@ -258,7 +258,12 @@ Sync being late must never look like nothing having happened.
   from one again below where the others already are.
 - A devices folder that cannot be listed is reported, not read as an empty one.
 - A project whose index is empty — added again, or rebuilt — reads this Mac's own
-  log back once, up to where it stood, so the rebuild covers both halves.
+  log back once, up to where it stood, so the rebuild covers both halves. Who this
+  Mac is lives in `identity.json` beside the index, not in it, so a rebuilt index
+  keeps the person and the device id that the own log is found by.
+- A project that could not be started — its own log not here yet, its drive not
+  mounted — is tried again every minute and on waking, not left until the next
+  launch.
 - FSEvents replay is only trusted while the volume's event-history UUID matches
   the one stored. When it does not, the whole folder is compared instead, and
   everything that comes out of that comparison is marked as reconstructed with an

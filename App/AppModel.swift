@@ -270,9 +270,11 @@ final class AppModel {
     private var refreshTask: Task<Void, Never>?
     private var statusTasks: [UUID: Task<Void, Never>] = [:]
     private let supportDirectory: URL
+    private let identityFile: IdentityFile
 
     init() {
         supportDirectory = URL.applicationSupportDirectory.appending(path: "MacBench", directoryHint: .isDirectory)
+        identityFile = IdentityFile(directory: supportDirectory)
         do {
             store = try Store(url: supportDirectory.appending(path: "index.sqlite"))
         } catch {
@@ -287,8 +289,18 @@ final class AppModel {
                     at: supportDirectory.appending(path: "index.sqlite" + suffix))
             }
             store = try! Store(url: broken)
+            indexWasRebuilt = true
         }
-        identity = try? store.setting(Self.identityKey, as: LocalIdentity.self)
+        // From its own file, so that the index going above takes nobody with it.
+        identity = identityFile.load(orAdopt: try? store.setting(Self.identityKey, as: LocalIdentity.self))
+    }
+
+    /// Kept in both places. The file is what survives a rebuilt index; the copy
+    /// in the index is what an older build reads, and what the file is made
+    /// again from if writing it failed.
+    private func persist(_ identity: LocalIdentity) {
+        try? identityFile.save(identity)
+        try? store.setSetting(Self.identityKey, value: identity)
     }
 
     static let identityKey = "local.identity"
@@ -337,6 +349,7 @@ final class AppModel {
         hasStarted = true
         try? store.upsert(member: identity.member)
         await startEngines()
+        startRetrying()
         observeDatabase()
         restoreLayout()
         refreshAll()
@@ -348,7 +361,7 @@ final class AppModel {
                             existingMember: Member?) async {
         let member = existingMember ?? Member(name: name, colorHex: colorHex)
         let identity = LocalIdentity(deviceName: deviceName, member: member)
-        try? store.setSetting(Self.identityKey, value: identity)
+        persist(identity)
         try? store.upsert(member: member)
         self.identity = identity
         await start()
@@ -363,6 +376,38 @@ final class AppModel {
         }
     }
 
+    /// Projects that could not be started are tried again, once a minute and
+    /// whenever the Mac wakes. What stops one is usually iCloud not having a file
+    /// here yet — this Mac's own log on a Mac that was offline, which a start
+    /// refuses to write past — or a drive that is not mounted. Both settle by
+    /// themselves, and a project nobody watches used to stay that way until the
+    /// app was opened again, while the banner asked for exactly that.
+    private func startRetrying() {
+        retryTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
+                await self?.retryUnwatched()
+            }
+        }
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in await self?.retryUnwatched() }
+        }
+    }
+
+    private func retryUnwatched() async {
+        guard let identity else { return }
+        let waiting = projects.filter {
+            !$0.isArchived && engines[$0.id] == nil && unreachableProjects[$0.id] != nil
+        }
+        guard !waiting.isEmpty else { return }
+        for project in waiting { await startEngine(for: project, identity: identity) }
+        refreshAll()
+    }
+
+    private var retryTask: Task<Void, Never>?
+    private var wakeObserver: (any NSObjectProtocol)?
+
     private func startEngine(for project: Project, identity: LocalIdentity) async {
         guard engines[project.id] == nil else { return }
         do {
@@ -371,8 +416,11 @@ final class AppModel {
                                       fallbackPath: location?.path, store: store)
             let engine = try ProjectEngine(projectID: project.id, root: url, store: store,
                                            identity: identity, supportDirectory: supportDirectory)
-            await engine.setArchiveAfterDays(archiveAfterDays)
+            // Claimed before the first suspension. A retry on waking and one on
+            // the minute can both get this far for the same project, and two
+            // engines would be two writers in one device folder.
             engines[project.id] = engine
+            await engine.setArchiveAfterDays(archiveAfterDays)
             statusTasks[project.id] = Task { [weak self] in
                 for await status in await engine.statusUpdates() {
                     await MainActor.run { self?.engineStatus[project.id] = status }
@@ -411,6 +459,11 @@ final class AppModel {
     /// The one message saying "this project is not being watched" was the one
     /// nobody ever saw.
     private var unreachableProjects: [UUID: String] = [:]
+
+    /// The index could not be opened at launch and was started again. Who this
+    /// Mac is survives that; which folders it watched does not, and without a
+    /// word the window would simply come up empty.
+    private var indexWasRebuilt = false
 
     func stop() async {
         for engine in engines.values { await engine.stop() }
@@ -716,6 +769,11 @@ final class AppModel {
     private func refreshBanners() {
         refreshCatchUp()
         var found: [Banner] = []
+        if indexWasRebuilt && projects.isEmpty {
+            found.append(Banner(
+                text: String(localized: "The list of projects had to be started again"),
+                detail: String(localized: "Add your project folders once more. Everything written in them comes back from the folders themselves.")))
+        }
         for project in projects {
             guard let reason = unreachableProjects[project.id] else { continue }
             found.append(Banner(text: String(localized: "\(project.name) is not being watched"),
@@ -1198,7 +1256,7 @@ final class AppModel {
         identity.member.name = name.trimmingCharacters(in: .whitespaces)
         identity.member.colorHex = colorHex
         self.identity = identity
-        try? store.setSetting(Self.identityKey, value: identity)
+        persist(identity)
         try? store.upsert(member: identity.member)
         for engine in engines.values { try? await engine.update(member: identity.member) }
         refreshAll()

@@ -108,7 +108,8 @@ struct Peer {
     init(name: String) throws {
         home = Peer.home(for: name)
         store = try Store(url: home.appending(path: "index.sqlite"))
-        if let stored = try store.setting(Peer.identityKey, as: LocalIdentity.self) {
+        let file = IdentityFile(directory: home)
+        if let stored = file.load(orAdopt: try? store.setting(Peer.identityKey, as: LocalIdentity.self)) {
             identity = stored
         } else {
             // Stable, unlike hashValue, so a name gets the same colour every time.
@@ -116,7 +117,7 @@ struct Peer {
             let colour = Peer.palette[seed % Peer.palette.count]
             identity = LocalIdentity(deviceName: "\(name)’s simulated Mac",
                                      member: Member(name: name, colorHex: colour))
-            try store.setSetting(Peer.identityKey, value: identity)
+            try file.save(identity)
         }
         try store.upsert(member: identity.member)
     }

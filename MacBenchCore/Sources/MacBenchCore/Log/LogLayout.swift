@@ -105,7 +105,7 @@ public enum LogError: Error, LocalizedError, Sendable {
         case .incompatibleFormat(let found, let supported):
             "This log was written by a newer version of the app (format \(found), this build reads \(supported))."
         case .ownLogUnavailable(let path, let underlying):
-            "This Mac's change log at \(path) cannot be read right now: \(underlying) Nothing is written to it until it can, so the other Macs do not miss a record. Open the app again once iCloud Drive has the file."
+            "This Mac's change log at \(path) cannot be read right now: \(underlying) Nothing is written to it until it can, so the other Macs do not miss a record. The app tries again every minute."
         }
     }
 }

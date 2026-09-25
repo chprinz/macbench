@@ -310,3 +310,63 @@ struct IdentityTests {
         #expect(a != d)
     }
 }
+
+@Suite("Who this Mac is")
+struct IdentityFileTests {
+
+    @Test("An identity kept in the index by an older version moves into its own file")
+    func adoptsLegacyIdentity() throws {
+        let dir = try makeTempRoot()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = IdentityFile(directory: dir)
+        let legacy = makeIdentity()
+        #expect(file.load(orAdopt: legacy) == legacy)
+        #expect(file.load(orAdopt: nil) == legacy, "written to the file on the way")
+        #expect(IdentityFile(directory: try makeTempRoot()).load(orAdopt: nil) == nil,
+                "neither is a Mac that has not onboarded yet")
+    }
+
+    @Test("The file wins over what the index says")
+    func fileWins() throws {
+        let dir = try makeTempRoot()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = IdentityFile(directory: dir)
+        let kept = makeIdentity(name: "Anna")
+        try file.save(kept)
+        #expect(file.load(orAdopt: makeIdentity(name: "Ben")) == kept)
+    }
+
+    @Test("A broken file falls back to the index rather than to a new person")
+    func brokenFileFallsBack() throws {
+        let dir = try makeTempRoot()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = IdentityFile(directory: dir)
+        try Data("{\"deviceID\": ".utf8).write(to: file.url)
+        let legacy = makeIdentity()
+        #expect(file.load(orAdopt: legacy) == legacy)
+        #expect(file.load(orAdopt: nil) == legacy, "and the file is whole again")
+    }
+
+    /// What this is for: an index that cannot be opened is deleted and started
+    /// again, and who this Mac is must not go with it.
+    @Test("A rebuilt index keeps the person and the device")
+    func survivesIndexRebuild() throws {
+        let dir = try makeTempRoot()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let index = dir.appending(path: "index.sqlite")
+        let identity = makeIdentity()
+        do {
+            let store = try Store(url: index)
+            try store.setSetting("local.identity", value: identity)
+            _ = IdentityFile(directory: dir).load(orAdopt: try? store.setting("local.identity", as: LocalIdentity.self))
+        }
+        for suffix in ["", "-wal", "-shm"] {
+            try? FileManager.default.removeItem(at: dir.appending(path: "index.sqlite" + suffix))
+        }
+        let fresh = try Store(url: index)
+        let loaded = IdentityFile(directory: dir)
+            .load(orAdopt: try? fresh.setting("local.identity", as: LocalIdentity.self))
+        #expect(loaded == identity)
+        #expect(loaded?.deviceID == identity.deviceID)
+    }
+}

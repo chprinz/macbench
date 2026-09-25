@@ -42,12 +42,11 @@ someone's head. Newest observations at the top of each section.
   In practice a second apart; a serial hand-off (an `AsyncStream`) would make
   it a guarantee.
 
-- **The identity lives in the index.** If `index.sqlite` cannot be opened it is
-  deleted and rebuilt, and with it goes who this Mac is: the person onboards
-  again, gets a new member id, and appears to the others as somebody new. Keeping
-  `LocalIdentity` beside the index, not inside it, would survive the reset — and
-  the rebuilt index would then read this Mac's own log back as well, which
-  `PeerSync` already does for an empty index under a known device id.
+- **The project list lives in the index.** Who this Mac is now survives a
+  rebuilt index (`identity.json` beside it), and so does everything written in the
+  folders, but which folders it watched does not: the window comes up empty with
+  a banner asking for them again. Keeping each project's id, path and bookmark in
+  a file beside the index, as the identity is, would bring them back unasked.
 
 - **The thumbnail cache on disk is never pruned.** Keyed by file and date now, so
   every saved version of an image leaves a small PNG behind.

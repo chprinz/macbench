@@ -472,6 +472,17 @@
         }
       }
     },
+    "Add your project folders once more. Everything written in them comes back from the folders themselves.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge deine Projektordner noch einmal hinzu. Alles, was darin geschrieben wurde, kommt aus den Ordnern selbst zurück."
+          }
+        }
+      }
+    },
     "Add “%@” Anyway": {
       "localizations": {
         "de": {
@@ -2467,6 +2478,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Der Index startet leer"
+          }
+        }
+      }
+    },
+    "The list of projects had to be started again": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Projektliste musste neu angelegt werden"
           }
         }
       }
