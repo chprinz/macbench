@@ -29,9 +29,6 @@ someone's head. Newest observations at the top of each section.
 
 ## Technical
 
-- **The thumbnail cache on disk is never pruned.** Keyed by file and date now, so
-  every saved version of an image leaves a small PNG behind.
-
 - **The sidebar's width is remembered by measuring it.** SwiftUI gives no binding
   for a split view's width, so the sidebar reports its size while being dragged
   and that value is handed back as the ideal width next launch. It works, but it

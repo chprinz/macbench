@@ -22,12 +22,45 @@ final class ThumbnailCache {
         diskDirectory = URL.applicationSupportDirectory
             .appending(path: "MacBench/thumbnails", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: diskDirectory, withIntermediateDirectories: true)
+        let directory = diskDirectory
+        Task.detached(priority: .background) { ThumbnailCache.prune(directory) }
+    }
+
+    /// Keyed by file and version, so every saved version of an image left a
+    /// preview behind, for good. What has not been looked at for a month goes,
+    /// and past a size cap the least recently used go first. A preview that is
+    /// needed again is made again; nothing here is anything but a copy.
+    nonisolated static func prune(_ directory: URL, now: Date = Date(),
+                                  maxAge: TimeInterval = 30 * 24 * 3600,
+                                  maxBytes: Int = 200 * 1024 * 1024) {
+        let keys: [URLResourceKey] = [.contentModificationDateKey, .fileSizeKey]
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: keys) else { return }
+        var kept: [(url: URL, used: Date, size: Int)] = []
+        for url in files where url.pathExtension == "png" {
+            let values = try? url.resourceValues(forKeys: Set(keys))
+            let used = values?.contentModificationDate ?? .distantPast
+            if now.timeIntervalSince(used) > maxAge {
+                try? FileManager.default.removeItem(at: url)
+            } else {
+                kept.append((url, used, values?.fileSize ?? 0))
+            }
+        }
+        var total = kept.reduce(0) { $0 + $1.size }
+        for file in kept.sorted(by: { $0.used < $1.used }) where total > maxBytes {
+            try? FileManager.default.removeItem(at: file.url)
+            total -= file.size
+        }
     }
 
     func cached(for url: URL) -> NSImage? {
         let version = versionKey(for: url)
         if let image = memory.object(forKey: version as NSString) { return image }
-        guard let image = NSImage(contentsOf: diskKey(for: version)) else { return nil }
+        let file = diskKey(for: version)
+        guard let image = NSImage(contentsOf: file) else { return nil }
+        // Marks it as used, which is what pruning goes by.
+        try? FileManager.default.setAttributes([.modificationDate: Date()],
+                                               ofItemAtPath: file.path(percentEncoded: false))
         memory.setObject(image, forKey: version as NSString)
         return image
     }
