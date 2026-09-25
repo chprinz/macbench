@@ -820,6 +820,9 @@ final class AppModel {
         }
     }
 
+    /// The file the conversation column is about, when it is about one.
+    var streamFileID: UUID? { isSearching ? searchPickFile : selectedFile }
+
     private var searchPickFile: UUID? {
         searchPick?.node.flatMap { $0.isPlaceholder ? nil : $0.id }
     }

@@ -302,8 +302,10 @@ struct EntryRow: View {
                         .font(.callout.weight(.semibold))
                         .fixedSize()
                     // The file gives way first, and in the middle: the name and
-                    // what kind of line this is are shorter and say more.
-                    if let node = fileNode {
+                    // what kind of line this is are shorter and say more. Under a
+                    // heading that already names the file it is left out: every
+                    // line repeated it, cut down to "26-09…fassung.txt".
+                    if let node = fileNode, !isAboutStreamFile {
                         FileTag(node: node)
                             .layoutPriority(-1)
                     }
@@ -459,6 +461,11 @@ struct EntryRow: View {
     private var fileNode: Node? {
         guard let node = item.node, !node.isPlaceholder else { return nil }
         return node
+    }
+
+    /// In the conversation column, about the file its heading names.
+    private var isAboutStreamFile: Bool {
+        !showsPath && fileNode != nil && fileNode?.id == model.streamFileID
     }
 
     /// The sentence with the file's name taken out of it, so the name can be the

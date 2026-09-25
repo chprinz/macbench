@@ -42,9 +42,6 @@ someone's head. Newest observations at the top of each section.
   scratch when only an entry changed.
 - **`Selection.node` covers both files and folders**, so several call sites have
   to ask which one it is. Splitting it would remove those branches.
-- **File names lose their middle** at the stream's default width. Either the
-  default is too narrow or the name needs its own line.
-
 - **`AssigneeFilter.unassigned` is unreachable from the interface.** The store
   supports it and a test covers it; the menu offers only "anyone" or a person,
   because a third entry read as a synonym of the first. If "what has nobody
