@@ -641,7 +641,7 @@ public actor ProjectEngine {
             await record([.nodeRename(NodeRenameRecord(
                 id: node.id, from: node.relativePath, to: relative, at: now,
                 isDirectory: isDirectory))])
-            var event = RawFileEvent(nodeID: node.id, relativePath: relative,
+            let event = RawFileEvent(nodeID: node.id, relativePath: relative,
                                      isDirectory: isDirectory,
                                      type: isRename ? .renamed : .moved,
                                      contentDate: modifiedAt, observedAt: now,
