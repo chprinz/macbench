@@ -271,10 +271,14 @@ final class AppModel {
     private var statusTasks: [UUID: Task<Void, Never>] = [:]
     private let supportDirectory: URL
     private let identityFile: IdentityFile
+    private let projectsFile: ProjectsFile
+    /// What `projects.json` holds, so it is only written when that changes.
+    private var mirroredProjects: [SavedProject]?
 
     init() {
         supportDirectory = URL.applicationSupportDirectory.appending(path: "MacBench", directoryHint: .isDirectory)
         identityFile = IdentityFile(directory: supportDirectory)
+        projectsFile = ProjectsFile(directory: supportDirectory)
         do {
             store = try Store(url: supportDirectory.appending(path: "index.sqlite"))
         } catch {
@@ -293,6 +297,20 @@ final class AppModel {
         }
         // From its own file, so that the index going above takes nobody with it.
         identity = identityFile.load(orAdopt: try? store.setting(Self.identityKey, as: LocalIdentity.self))
+        // And the folders it watched, from theirs. An index with no project at
+        // all next to a list that has some is one that was started again.
+        mirroredProjects = projectsFile.load()
+        if let saved = mirroredProjects, !saved.isEmpty,
+           (try? store.projects(includeArchived: true))?.isEmpty == true {
+            _ = try? store.restore(saved)
+        }
+    }
+
+    /// Keeps `projects.json` up to date with the index. Cheap enough to ask on
+    /// every refresh: one small table, written only when it differs.
+    private func mirrorProjects() {
+        guard let current = try? store.savedProjects(), current != mirroredProjects else { return }
+        if (try? projectsFile.save(current)) != nil { mirroredProjects = current }
     }
 
     /// Kept in both places. The file is what survives a rebuilt index; the copy
@@ -573,6 +591,7 @@ final class AppModel {
 
     func refreshAll() {
         guard let viewer = identity?.member.id else { return }
+        mirrorProjects()
         projects = (try? store.projects()) ?? []
         // A project archived or removed since it was picked would leave a list
         // narrowed to something with no pill to switch it off again.

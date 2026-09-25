@@ -260,7 +260,9 @@ Sync being late must never look like nothing having happened.
 - A project whose index is empty — added again, or rebuilt — reads this Mac's own
   log back once, up to where it stood, so the rebuild covers both halves. Who this
   Mac is lives in `identity.json` beside the index, not in it, so a rebuilt index
-  keeps the person and the device id that the own log is found by.
+  keeps the person and the device id that the own log is found by. Which folders
+  it watches is mirrored into `projects.json` beside it too, and put back when
+  the index comes up with no project at all.
 - A project that could not be started — its own log not here yet, its drive not
   mounted — is tried again every minute and on waking, not left until the next
   launch.

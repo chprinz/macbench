@@ -370,3 +370,65 @@ struct IdentityFileTests {
         #expect(loaded?.deviceID == identity.deviceID)
     }
 }
+
+@Suite("Which folders this Mac watches")
+struct ProjectsFileTests {
+
+    @Test("A rebuilt index gets its projects back, under their own ids")
+    func restoresAfterRebuild() throws {
+        let dir = try makeTempRoot()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let index = dir.appending(path: "index.sqlite")
+        let file = ProjectsFile(directory: dir)
+        let kunde = Project(name: "Kunde A")
+        let alt = Project(name: "Alt")
+        do {
+            let store = try Store(url: index)
+            try store.addProject(kunde, rootPath: "/Users/x/Kunde A", bookmark: Data([1, 2, 3]))
+            try store.addProject(alt, rootPath: "/Users/x/Alt", bookmark: nil)
+            try store.setVerbosity(.majorOnly, for: kunde.id)
+            try store.setExcludedPaths(["Render", "Cache"], for: kunde.id)
+            try store.setProjectArchived(alt.id, true)
+            try store.setFSEventCursor(42, scannedAt: Date(), for: kunde.id)
+            try file.save(try store.savedProjects())
+        }
+        for suffix in ["", "-wal", "-shm"] {
+            try? FileManager.default.removeItem(at: dir.appending(path: "index.sqlite" + suffix))
+        }
+
+        let fresh = try Store(url: index)
+        #expect(try fresh.restore(try #require(file.load())) == 2)
+        #expect(try fresh.projects(includeArchived: true).map(\.id).sorted { $0.uuidString < $1.uuidString }
+                == [kunde.id, alt.id].sorted { $0.uuidString < $1.uuidString })
+        #expect(try fresh.projects().map(\.id) == [kunde.id], "archived stays archived")
+        let location = try #require(try fresh.projectLocation(kunde.id))
+        #expect(location.path == "/Users/x/Kunde A")
+        #expect(location.bookmark == Data([1, 2, 3]))
+        #expect(try fresh.verbosity(for: kunde.id) == .majorOnly)
+        #expect(try fresh.excludedPaths(for: kunde.id) == ["Render", "Cache"])
+        // The index behind the cursor is gone; the folder is looked at afresh.
+        let cursor = try fresh.fsEventCursor(for: kunde.id)
+        #expect(cursor.eventID == nil && cursor.lastScanAt == nil)
+    }
+
+    @Test("Restoring leaves projects that are already there alone")
+    func restoreIsIdempotent() throws {
+        let store = try Store()
+        let project = Project(name: "P")
+        try store.addProject(project, rootPath: "/a", bookmark: nil)
+        var saved = try store.savedProjects()
+        saved[0].name = "anders"
+        #expect(try store.restore(saved) == 0)
+        #expect(try store.projects().map(\.name) == ["P"])
+    }
+
+    @Test("No file, or a broken one, restores nothing")
+    func missingOrBrokenFile() throws {
+        let dir = try makeTempRoot()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = ProjectsFile(directory: dir)
+        #expect(file.load() == nil)
+        try Data("[{\"id\":".utf8).write(to: file.url)
+        #expect(file.load() == nil)
+    }
+}

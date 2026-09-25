@@ -117,7 +117,12 @@ arguing with one, read the test first.
 - **The log folder is called `.macbench` in every build.** It is the data
   format, not a brand.
 - **Absolute paths and security-scoped bookmarks stay local.** They contain the
-  account name and are bound to one Mac.
+  account name and are bound to one Mac. `projects.json` holds them, and lives in
+  Application Support beside the index, never in a project folder.
+- **The index is the only thing that may be lost.** Who this Mac is
+  (`identity.json`) and which folders it watches (`projects.json`) live beside
+  it, because a broken index is deleted and rebuilt from the logs, and the logs
+  cannot say either.
 - **Read state and verbosity are personal.** One person muting a project must not
   mute it for the other.
 - **Never trigger an iCloud download to draw something.** Check
