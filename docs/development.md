@@ -107,6 +107,9 @@ arguing with one, read the test first.
   `.macbench/devices/<its own id>/`. This is what makes the whole thing
   conflict-free on top of any file sync. A shared file that both machines edit
   would reintroduce exactly the conflict copies the app is meant to warn about.
+  A Mac made from another one's backup would share its device id; the identity
+  records the hardware it was made on, and a copy on other hardware becomes a
+  device of its own (`LocalIdentity.claimed`).
 - **Duplicate resolution may only use facts both machines have.** A known author
   beats an unknown one, then the file's own modification date, then the entry id.
   Never `observedAt` — it is local, so the two machines would reach different

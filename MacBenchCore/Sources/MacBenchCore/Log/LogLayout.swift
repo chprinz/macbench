@@ -1,4 +1,5 @@
 import Foundation
+import IOKit
 
 /// On-disk layout inside a project folder.
 ///
@@ -83,12 +84,51 @@ public struct LocalIdentity: Codable, Hashable, Sendable {
     public var deviceID: UUID
     public var deviceName: String
     public var member: Member
+    /// The hardware this identity was made on. Nil in one written before it was
+    /// recorded, which the first start then fills in.
+    public var machineID: String?
 
-    public init(deviceID: UUID = UUID(), deviceName: String, member: Member) {
+    public init(deviceID: UUID = UUID(), deviceName: String, member: Member,
+                machineID: String? = MachineID.current) {
         self.deviceID = deviceID
         self.deviceName = deviceName
         self.member = member
+        self.machineID = machineID
     }
+
+    /// This identity as the machine it is running on should use it.
+    ///
+    /// Migration Assistant and a Time Machine restore onto a new Mac copy the
+    /// identity along with everything else, and the old Mac usually goes on
+    /// running. Two machines then write into one device folder — the one way the
+    /// rule that no file is written by two machines can break, and it breaks
+    /// silently: each overwrites the other's manifest and segments. A copy that
+    /// finds itself on other hardware becomes a device of its own. The person
+    /// stays the same; it is still them, on a new Mac.
+    public func claimed(by machine: String?, name: @autoclosure () -> String?) -> LocalIdentity {
+        guard let machine, machineID != machine else { return self }
+        var claimed = self
+        claimed.machineID = machine
+        // Filling in a missing machine is not a move: nothing says where the
+        // identity was made, and this is the only place it has been seen.
+        guard machineID != nil else { return claimed }
+        claimed.deviceID = UUID()
+        if let name = name() { claimed.deviceName = name }
+        return claimed
+    }
+}
+
+/// The hardware's own identifier, which a copied disk does not carry along.
+public enum MachineID {
+    public static let current: String? = {
+        let service = IOServiceGetMatchingService(kIOMainPortDefault,
+                                                  IOServiceMatching("IOPlatformExpertDevice"))
+        guard service != 0 else { return nil }
+        defer { IOObjectRelease(service) }
+        return IORegistryEntryCreateCFProperty(service, kIOPlatformUUIDKey as CFString,
+                                               kCFAllocatorDefault, 0)?
+            .takeRetainedValue() as? String
+    }()
 }
 
 public enum LogError: Error, LocalizedError, Sendable {

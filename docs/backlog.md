@@ -58,11 +58,6 @@ someone's head. Newest observations at the top of each section.
   scratch when only an entry changed.
 - **`Selection.node` covers both files and folders**, so several call sites have
   to ask which one it is. Splitting it would remove those branches.
-- **No guard against a duplicated device folder.** If a Mac is cloned (Time
-  Machine restore, Migration Assistant), two installs write under one device id,
-  which is the one way the "no file is written twice" invariant can break. Fix:
-  an instance token in the manifest; on a mismatch, mint a new device id.
-
 - **No "mark as unread".** The dwell before an entry counts as read is 900 ms,
   which is short enough that glancing at the stream clears it.
 - **A retraction cannot be undone.** `isRetracted` is a patch like any other, so

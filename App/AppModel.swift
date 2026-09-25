@@ -297,6 +297,14 @@ final class AppModel {
         }
         // From its own file, so that the index going above takes nobody with it.
         identity = identityFile.load(orAdopt: try? store.setting(Self.identityKey, as: LocalIdentity.self))
+        // Copied onto another Mac, it becomes a device of its own. See `claimed`.
+        if let loaded = identity {
+            let claimed = loaded.claimed(by: MachineID.current, name: Host.current().localizedName)
+            if claimed != loaded {
+                identity = claimed
+                persist(claimed)
+            }
+        }
         // And the folders it watched, from theirs. An index with no project at
         // all next to a list that has some is one that was started again.
         mirroredProjects = projectsFile.load()

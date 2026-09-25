@@ -432,3 +432,48 @@ struct ProjectsFileTests {
         #expect(file.load() == nil)
     }
 }
+
+@Suite("A copied Mac")
+struct ClonedMachineTests {
+    private let member = Member(name: "Anna", colorHex: "#E4572E")
+
+    @Test("An identity on the hardware it was made on stays as it is")
+    func sameMachine() {
+        let identity = LocalIdentity(deviceName: "Annas MacBook", member: member, machineID: "A")
+        #expect(identity.claimed(by: "A", name: "anders") == identity)
+        #expect(identity.claimed(by: nil, name: "anders") == identity,
+                "not knowing the hardware is no reason to become somebody else")
+    }
+
+    @Test("A copy on other hardware becomes a device of its own, and the same person")
+    func copiedToAnotherMachine() {
+        let identity = LocalIdentity(deviceName: "Annas MacBook", member: member, machineID: "A")
+        let copy = identity.claimed(by: "B", name: "Annas Mac mini")
+        #expect(copy.deviceID != identity.deviceID)
+        #expect(copy.member == identity.member)
+        #expect(copy.machineID == "B")
+        #expect(copy.deviceName == "Annas Mac mini")
+        #expect(copy.claimed(by: "B", name: "x") == copy, "and stays that device from then on")
+    }
+
+    @Test("An identity from before the hardware was recorded is taken as made here")
+    func unrecordedMachine() {
+        let identity = LocalIdentity(deviceName: "Annas MacBook", member: member, machineID: nil)
+        let claimed = identity.claimed(by: "A", name: "anders")
+        #expect(claimed.deviceID == identity.deviceID)
+        #expect(claimed.deviceName == "Annas MacBook")
+        #expect(claimed.machineID == "A")
+    }
+
+    @Test("The hardware can be told apart at all")
+    func machineIDIsThere() {
+        #expect(MachineID.current?.isEmpty == false)
+    }
+
+    @Test("An identity file from before the hardware was recorded still reads")
+    func oldIdentityFileDecodes() throws {
+        let old = ##"{"deviceID":"3F2A0000-0000-0000-0000-000000000001","deviceName":"M","member":{"id":"3F2A0000-0000-0000-0000-000000000002","name":"Anna","colorHex":"#E4572E"}}"##
+        let decoded = try JSONCoding.decoder().decode(LocalIdentity.self, from: Data(old.utf8))
+        #expect(decoded.machineID == nil)
+    }
+}
