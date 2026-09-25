@@ -1339,6 +1339,25 @@ final class AppModel {
         NSWorkspace.shared.open(url)
     }
 
+    /// MarkEdit, when it is installed, for a text file. Looking at one is Quick
+    /// Look's; editing belongs to an editor, and the Finder's choice for a .md
+    /// is often not the one anybody wanted. Editing itself stays out of this app:
+    /// editing shared files is where conflict copies come from.
+    static let markEditID = "app.cyan.markedit"
+    static let textExtensions: Set<String> = ["md", "markdown", "txt", "text", "mdown", "mkd"]
+
+    var markEditURL: URL? { NSWorkspace.shared.urlForApplication(withBundleIdentifier: Self.markEditID) }
+
+    func canOpenInMarkEdit(_ node: Node) -> Bool {
+        !node.isDirectory && Self.textExtensions.contains((node.name as NSString).pathExtension.lowercased())
+            && markEditURL != nil
+    }
+
+    func openInMarkEdit(_ node: Node) {
+        guard let url = url(for: node), let app = markEditURL else { return }
+        NSWorkspace.shared.open([url], withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
+    }
+
     // MARK: - Quick Look
 
     /// The file the preview panel is showing, or nothing. Set from a row, the

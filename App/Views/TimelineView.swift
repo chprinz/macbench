@@ -693,6 +693,9 @@ struct EntryMenu: View {
         if let node = item.node, !node.isPlaceholder {
             Button("Show in Finder") { model.reveal(node) }
             Button("Open") { model.open(node) }
+            if model.canOpenInMarkEdit(node) {
+                Button("Open in MarkEdit") { model.openInMarkEdit(node) }
+            }
             Button("Go to File") { model.focus(node: node) }
             Divider()
         }

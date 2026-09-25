@@ -254,6 +254,9 @@ struct FileMenu: View {
             Divider()
         }
         Button("Open") { model.open(node) }
+        if model.canOpenInMarkEdit(node) {
+            Button("Open in MarkEdit") { model.openInMarkEdit(node) }
+        }
         Button("Quick Look") { model.toggleQuickLook(node) }
             .disabled(!model.canQuickLook(node))
         Button("Show in Finder") { model.reveal(node) }

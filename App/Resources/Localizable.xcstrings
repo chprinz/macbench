@@ -1963,6 +1963,17 @@
         }
       }
     },
+    "Open in MarkEdit": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In MarkEdit öffnen"
+          }
+        }
+      }
+    },
     "Opens a small window from any app, so a thought can be written down without leaving what you are doing. Pick a combination your launcher does not already use.": {
       "extractionState": "manual",
       "localizations": {

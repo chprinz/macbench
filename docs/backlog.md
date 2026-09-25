@@ -59,10 +59,6 @@ someone's head. Newest observations at the top of each section.
   file on the text field already works; typing its name does not.
 - **A generated `TODO.md`** in the project folder, so tasks are readable in
   Obsidian or the Finder. Derived, therefore safe to overwrite.
-- **"Open in MarkEdit"** beside a text file. Looking at one is covered — space or
-  ⌘Y hands it to Quick Look — but the app that should edit it is still whatever
-  the Finder thinks. Editing stays out of this app: editing shared files is where
-  conflict copies come from, and MarkEdit already does it better.
 - **Quick Look is refused for a file iCloud has evicted**, because previewing it
   would download it. The row says so with a cloud icon and "Open" still works.
   Offering the download as a choice would be better than refusing quietly.
