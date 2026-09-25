@@ -21,8 +21,6 @@ someone's head. Newest observations at the top of each section.
   the app on a list that is empty for a reason set days ago. The person used to
   be left out for the same reason, and the first bug report said "only mine" is
   how people work, not something they look up once.
-- **Verbosity is settable in two places**, the project's context menu and
-  Settings. One of them should go.
 
 ## Technical
 
