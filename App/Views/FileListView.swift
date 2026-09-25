@@ -257,8 +257,12 @@ struct FileMenu: View {
         if model.canOpenInMarkEdit(node) {
             Button("Open in MarkEdit") { model.openInMarkEdit(node) }
         }
-        Button("Quick Look") { model.toggleQuickLook(node) }
-            .disabled(!model.canQuickLook(node))
+        if model.isEvicted(node) {
+            Button("Download and Quick Look") { model.downloadAndPreview(node) }
+        } else {
+            Button("Quick Look") { model.toggleQuickLook(node) }
+                .disabled(!model.canQuickLook(node))
+        }
         Button("Show in Finder") { model.reveal(node) }
     }
 }

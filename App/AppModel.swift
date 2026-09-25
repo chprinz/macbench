@@ -1400,6 +1400,36 @@ final class AppModel {
         return ThumbnailCache.shared.isMaterialised(url)
     }
 
+    /// A file that is here only as iCloud's placeholder, which is why it cannot
+    /// be previewed.
+    func isEvicted(_ node: Node) -> Bool {
+        guard node.state == .present, !node.isDirectory, let url = url(for: node) else { return false }
+        return !ThumbnailCache.shared.isMaterialised(url)
+    }
+
+    /// The download a preview needs, asked for by name rather than refused
+    /// quietly, and the preview once it is here. A preview is never worth a
+    /// download nobody asked for; this one somebody did.
+    func downloadAndPreview(_ node: Node) {
+        guard let url = url(for: node) else { return }
+        try? FileManager.default.startDownloadingUbiquitousItem(at: url)
+        previewTask?.cancel()
+        previewTask = Task { [weak self] in
+            // Two minutes is a large file on a slow line; past that, the cloud
+            // icon turning into a preview is the sign it arrived.
+            for _ in 0..<240 {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard !Task.isCancelled, let self else { return }
+                if ThumbnailCache.shared.isMaterialised(url) {
+                    self.quickLookURL = url
+                    return
+                }
+            }
+        }
+    }
+
+    private var previewTask: Task<Void, Never>?
+
     /// Pressed on the file already showing, this puts the panel away — the same
     /// rule the space bar follows in the Finder, and the one the stream button
     /// follows here.

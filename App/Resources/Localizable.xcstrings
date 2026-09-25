@@ -994,6 +994,17 @@
         }
       }
     },
+    "Download and Quick Look": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laden und in Übersicht zeigen"
+          }
+        }
+      }
+    },
     "Edit": {
       "extractionState": "manual",
       "localizations": {
