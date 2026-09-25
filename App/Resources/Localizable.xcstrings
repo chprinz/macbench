@@ -48,7 +48,14 @@
     },
     "%@ opens a small window from any app, even with every window closed. Pick the project, write, press Return.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ öffnet aus jeder App ein kleines Fenster, auch wenn alle Fenster geschlossen sind. Projekt wählen, schreiben, Zeilenschalter drücken."
+          }
+        }
+      }
     },
     "%@ was added": {
       "extractionState": "manual",
@@ -409,31 +416,80 @@
     },
     "**Adding a folder inside the project.** A project keeps one shared history in its top folder. If somebody has already added it, add the same folder they did. A folder inside it would start a second history that nobody else sees. When this happens you are warned and offered the right folder.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Einen Ordner innerhalb des Projekts hinzufügen.** Ein Projekt führt einen gemeinsamen Verlauf in seinem obersten Ordner. Hat jemand das Projekt schon hinzugefügt, füge denselben Ordner hinzu wie diese Person. Ein Ordner darin würde einen zweiten Verlauf beginnen, den sonst niemand sieht. Passiert das, bekommst du eine Warnung und den richtigen Ordner angeboten."
+          }
+        }
+      }
     },
     "**Archive Project**, in a project's menu in the sidebar, is for a job that is done. It is no longer watched and leaves the lists; its history is kept. It comes back from Settings, under Projects, and whatever changed meanwhile is found by comparing the folder.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Projekt archivieren** im Menü eines Projekts in der Seitenleiste ist für einen Auftrag, der erledigt ist. Das Projekt wird nicht mehr beobachtet und verschwindet aus den Listen; sein Verlauf bleibt erhalten. Zurück holst du es in den Einstellungen unter „Projekte“, und was sich inzwischen geändert hat, wird durch einen Vergleich des Ordners gefunden."
+          }
+        }
+      }
     },
     "**For**, or @ and a name in the text, addresses a message to one person. Their name appears in front of it in their colour, and they get a notification.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Für**, oder @ und ein Name im Text, richtet eine Nachricht an eine Person. Ihr Name steht dann in ihrer Farbe davor, und sie bekommt eine Mitteilung."
+          }
+        }
+      }
     },
     "**Leaving Start at login off.** Changes are recorded with your name only while the app runs. What you do while it is closed is found later by comparing the folder, with a ~ before the time and often without your name. Closing the window does not stop it; it keeps watching in the background. The switch is in Settings, under General.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**„Bei der Anmeldung starten“ ausgeschaltet lassen.** Änderungen werden nur mit deinem Namen erfasst, solange die App läuft. Was du tust, während sie geschlossen ist, wird später durch einen Vergleich des Ordners gefunden, mit einer ~ vor der Uhrzeit und oft ohne deinen Namen. Das Fenster zu schließen, beendet sie nicht; sie beobachtet im Hintergrund weiter. Der Schalter ist in den Einstellungen unter „Allgemein“."
+          }
+        }
+      }
     },
     "**Left:** Latest activity, Tasks, and your projects with their folders.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Links:** Neueste Aktivität, Aufgaben und deine Projekte mit ihren Ordnern."
+          }
+        }
+      }
     },
     "**Middle:** what you picked on the left: the files in a folder, every open task, or everything that has happened.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Mitte:** was du links gewählt hast: die Dateien eines Ordners, alle offenen Aufgaben oder alles, was passiert ist."
+          }
+        }
+      }
     },
     "**Right:** the messages about what you picked in the middle, with the field to write in at the bottom. Messages in the toolbar shows and hides this column.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Rechts:** die Nachrichten zu dem, was du in der Mitte gewählt hast, unten mit dem Feld zum Schreiben. „Nachrichten“ in der Symbolleiste blendet diese Spalte ein und aus."
+          }
+        }
+      }
     },
     "30 days": {
       "extractionState": "manual",
@@ -481,7 +537,14 @@
     },
     "A line counts as read once it has been on screen for a moment. The number beside Latest activity is what you have not read yet, and a dot in the sidebar marks the folders it is in.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Zeile gilt als gelesen, sobald sie einen Moment lang zu sehen war. Die Zahl neben „Neueste Aktivität“ ist, was du noch nicht gelesen hast, und ein Punkt in der Seitenleiste markiert die Ordner, in denen es liegt."
+          }
+        }
+      }
     },
     "A message becomes a task by ticking the box next to the text field before sending it. Open tasks from every project collect here until somebody ticks them off.": {
       "extractionState": "manual",
@@ -496,11 +559,25 @@
     },
     "A reply to something you wrote notifies you too. File changes never do.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auch eine Antwort auf etwas, das du geschrieben hast, meldet sich bei dir. Dateiänderungen nie."
+          }
+        }
+      }
     },
     "A shortcut opens a small window from any app, even with every window closed. Pick the project, write, press Return. There is none set right now; choose one in Settings, under General.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Tastenkürzel öffnet aus jeder App ein kleines Fenster, auch wenn alle Fenster geschlossen sind. Projekt wählen, schreiben, Zeilenschalter drücken. Gerade ist keines festgelegt; wähle eines in den Einstellungen unter „Allgemein“."
+          }
+        }
+      }
     },
     "Add": {
       "extractionState": "manual",
@@ -645,7 +722,14 @@
     },
     "Another Mac has announced changes that have not arrived for over ten minutes. Check that iCloud Drive is syncing on both Macs; the changes show up by themselves. A shorter wait appears only at the foot of the sidebar and needs nothing from you.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein anderer Mac hat Änderungen angekündigt, die seit über zehn Minuten nicht angekommen sind. Prüfe, ob iCloud Drive auf beiden Macs synchronisiert; die Änderungen erscheinen dann von selbst. Kürzeres Warten steht nur unten in der Seitenleiste, und du musst nichts tun."
+          }
+        }
+      }
     },
     "Anyone": {
       "extractionState": "manual",
@@ -704,7 +788,14 @@
     },
     "Archiving": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivieren"
+          }
+        }
+      }
     },
     "Back": {
       "extractionState": "manual",
@@ -741,7 +832,14 @@
     },
     "Both apply only on your Mac. Nothing is deleted, for you or for anybody else.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beides gilt nur auf deinem Mac. Gelöscht wird nichts, weder für dich noch für andere."
+          }
+        }
+      }
     },
     "Both of you saved this file at the same time. Open the folder and keep the version you want.": {
       "extractionState": "manual",
@@ -932,7 +1030,14 @@
     },
     "Clear the search": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suche leeren"
+          }
+        }
+      }
     },
     "Click Add Project to add “%@”. You are already in it.": {
       "localizations": {
@@ -1012,7 +1117,14 @@
     },
     "Could not read … / Could not look for the other Macs …": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Teil des Protokolls von … ist nicht lesbar / Die anderen Macs in … lassen sich nicht finden"
+          }
+        }
+      }
     },
     "Could not tell which Mac this change came from. The name is filled in if that Mac's log turns up.": {
       "extractionState": "manual",
@@ -1038,7 +1150,14 @@
     },
     "Deleted files move to the archive after a while, 90 days unless you change it in Settings, under General. They leave the lists and search; what was written about them is kept.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gelöschte Dateien wandern nach einer Weile ins Archiv, nach 90 Tagen, wenn du es in den Einstellungen unter „Allgemein“ nicht änderst. Sie verschwinden aus den Listen und der Suche; was über sie geschrieben wurde, bleibt."
+          }
+        }
+      }
     },
     "Done": {
       "extractionState": "manual",
@@ -1053,7 +1172,14 @@
     },
     "Double-click a file to open it in its app, as in the Finder. The same works on any line in the messages that is about a file.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Doppelklick öffnet eine Datei in ihrer App, wie im Finder. Das geht auch bei jeder Zeile in den Nachrichten, die von einer Datei handelt."
+          }
+        }
+      }
     },
     "Download and Quick Look": {
       "extractionState": "manual",
@@ -1090,7 +1216,14 @@
     },
     "Every change to a file becomes a line. Repeated saves of one file are gathered for twenty minutes and then shown as one line; until then they are listed below the messages with a countdown.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jede Änderung an einer Datei wird zu einer Zeile. Wiederholtes Sichern derselben Datei wird zwanzig Minuten lang gesammelt und dann als eine Zeile gezeigt; bis dahin steht es mit einem Countdown unter den Nachrichten."
+          }
+        }
+      }
     },
     "Every task nobody has ticked off yet, from every project.": {
       "extractionState": "manual",
@@ -1226,7 +1359,14 @@
     },
     "Files": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dateien"
+          }
+        }
+      }
     },
     "Files and folders": {
       "extractionState": "manual",
@@ -1329,7 +1469,14 @@
     },
     "Getting Started": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erste Schritte"
+          }
+        }
+      }
     },
     "Go to File": {
       "extractionState": "manual",
@@ -1388,7 +1535,14 @@
     },
     "How the window is laid out, what writing does and whom it reaches, and what to do when something looks off. This page is in the Help menu whenever you want it again.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wie das Fenster aufgebaut ist, was Schreiben bewirkt und wen es erreicht, und was du tun kannst, wenn etwas seltsam aussieht. Du findest diese Seite jederzeit wieder im Hilfe-Menü."
+          }
+        }
+      }
     },
     "Indexing %lld items…": {
       "extractionState": "manual",
@@ -1433,7 +1587,14 @@
     },
     "Keyboard shortcuts": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastenkürzel"
+          }
+        }
+      }
     },
     "Last changed: %@": {
       "extractionState": "manual",
@@ -1459,7 +1620,14 @@
     },
     "Latest activity opens where you stopped, at a line marking the spot. Your own entries are never unread.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„Neueste Aktivität“ öffnet sich dort, wo du aufgehört hast, an einer Linie, die die Stelle markiert. Deine eigenen Einträge sind nie ungelesen."
+          }
+        }
+      }
     },
     "Loading changes from %@": {
       "extractionState": "manual",
@@ -1562,11 +1730,25 @@
     },
     "Mark as Unread, in a line's menu, puts it back. The menu of a project or folder marks it all as read; ⇧⌘K marks everything.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„Als ungelesen markieren“ im Menü einer Zeile macht das rückgängig. Das Menü eines Projekts oder Ordners markiert dort alles als gelesen, ⇧⌘K alles überall."
+          }
+        }
+      }
     },
     "Mark everything as read": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles als gelesen markieren"
+          }
+        }
+      }
     },
     "Me": {
       "extractionState": "manual",
@@ -1592,7 +1774,14 @@
     },
     "Messages at the top of the window": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meldungen oben im Fenster"
+          }
+        }
+      }
     },
     "Move deleted files to the archive after": {
       "extractionState": "manual",
@@ -1684,7 +1873,14 @@
     },
     "New line": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Zeile"
+          }
+        }
+      }
     },
     "New message": {
       "extractionState": "manual",
@@ -1874,7 +2070,14 @@
     },
     "Nothing here moves, renames or deletes a file. That stays the Finder's job.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hier wird keine Datei verschoben, umbenannt oder gelöscht. Das bleibt Sache des Finders."
+          }
+        }
+      }
     },
     "Nothing is lost while this lasts: changes are reconstructed by comparing the folder once it can be read again.": {
       "extractionState": "manual",
@@ -2114,7 +2317,14 @@
     },
     "Pick a file or folder, then write in the field at the bottom right. The message stays with that file, even when it is renamed or moved.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle eine Datei oder einen Ordner und schreib unten rechts ins Feld. Die Nachricht bleibt bei dieser Datei, auch wenn sie umbenannt oder verschoben wird."
+          }
+        }
+      }
     },
     "Pick a result": {
       "extractionState": "manual",
@@ -2162,7 +2372,14 @@
     },
     "Pick the person before you send. Changing For later, from the message's menu, changes the name shown, but only a message that arrives already addressed is sure to notify.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle die Person, bevor du sendest. Änderst du „Für“ später im Menü der Nachricht, ändert sich der angezeigte Name, aber sicher gemeldet wird nur eine Nachricht, die schon mit Empfänger ankommt."
+          }
+        }
+      }
     },
     "Press keys…": {
       "extractionState": "manual",
@@ -2177,11 +2394,25 @@
     },
     "Preview the picked file": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorschau der gewählten Datei"
+          }
+        }
+      }
     },
     "Problems with the sync are shown, never hidden. The × puts one away; it comes back on the next start if the problem is still there.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Probleme mit der Synchronisierung werden gezeigt, nie versteckt. Das × blendet eine Meldung aus; beim nächsten Start ist sie wieder da, wenn das Problem noch besteht."
+          }
+        }
+      }
     },
     "Projects": {
       "extractionState": "manual",
@@ -2240,7 +2471,14 @@
     },
     "Quick note, from any app": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schnellnotiz, aus jeder App"
+          }
+        }
+      }
     },
     "Quick note…": {
       "extractionState": "manual",
@@ -2354,7 +2592,14 @@
     },
     "Return sends, Shift-Return starts a new line. To answer a message, choose Reply from its menu (Control-click).": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Zeilenschalter sendet, Umschalt-Zeilenschalter beginnt eine neue Zeile. Um auf eine Nachricht zu antworten, wähle „Antworten“ in ihrem Menü (Control-Klick)."
+          }
+        }
+      }
     },
     "Return to save · Esc to close": {
       "extractionState": "manual",
@@ -2434,11 +2679,25 @@
     },
     "Send": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senden"
+          }
+        }
+      }
     },
     "Settings": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen"
+          }
+        }
+      }
     },
     "Shortcut": {
       "extractionState": "manual",
@@ -2562,7 +2821,14 @@
     },
     "Show or hide the messages": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nachrichten ein- oder ausblenden"
+          }
+        }
+      }
     },
     "Show or hide the messages: the changes and conversation around what is selected": {
       "extractionState": "manual",
@@ -2577,7 +2843,14 @@
     },
     "Show or hide the sidebar": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seitenleiste ein- oder ausblenden"
+          }
+        }
+      }
     },
     "Show the whole folder": {
       "extractionState": "manual",
@@ -2613,7 +2886,14 @@
     },
     "Somebody has updated. Update on this Mac too, to see what they write.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jemand hat aktualisiert. Aktualisiere auch auf diesem Mac, damit du siehst, was dort geschrieben wird."
+          }
+        }
+      }
     },
     "Somebody is already keeping a history in this folder.": {
       "extractionState": "manual",
@@ -2639,7 +2919,14 @@
     },
     "Something in the shared folder could not be read, so entries may be missing until it can. If it lasts, check that the folder syncs.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etwas im geteilten Ordner war nicht lesbar, deshalb können Einträge fehlen, bis es wieder geht. Wenn das anhält, prüfe, ob der Ordner synchronisiert."
+          }
+        }
+      }
     },
     "Something went wrong in %@": {
       "extractionState": "manual",
@@ -2654,11 +2941,25 @@
     },
     "Space": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leertaste"
+          }
+        }
+      }
     },
     "Space or ⌘Y shows a preview. A file with a cloud icon is not on this Mac yet: the preview leaves it in the cloud, opening it downloads it.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leertaste oder ⌘Y zeigt eine Vorschau. Eine Datei mit Wolkensymbol ist noch nicht auf diesem Mac: Die Vorschau lässt sie in der Cloud, erst das Öffnen lädt sie herunter."
+          }
+        }
+      }
     },
     "Start": {
       "extractionState": "manual",
@@ -2761,7 +3062,14 @@
     },
     "Task and @name work as in the field on the right. A quick note belongs to the project, not to a file.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„Aufgabe“ und @Name funktionieren wie im Feld rechts. Eine Schnellnotiz gehört zum Projekt, nicht zu einer Datei."
+          }
+        }
+      }
     },
     "Task: %@": {
       "extractionState": "manual",
@@ -2831,7 +3139,14 @@
     },
     "The change stream": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Änderungsstrom"
+          }
+        }
+      }
     },
     "The filter above the projects in the sidebar applies here too. Click to show everything again.": {
       "localizations": {
@@ -2845,7 +3160,14 @@
     },
     "The folder cannot be opened: renamed, moved, or on a drive that is not connected. Reconnect it, or add it again. The reason stays in Settings, under Projects, and changes made meanwhile are found by comparing the folder once it can be read.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Ordner lässt sich nicht öffnen: umbenannt, verschoben oder auf einem Laufwerk, das nicht angeschlossen ist. Schließ es wieder an oder füge den Ordner neu hinzu. Der Grund steht weiter in den Einstellungen unter „Projekte“, und Änderungen aus der Zwischenzeit werden durch einen Vergleich des Ordners gefunden, sobald er wieder lesbar ist."
+          }
+        }
+      }
     },
     "The folder could not be added": {
       "extractionState": "manual",
@@ -2893,11 +3215,25 @@
     },
     "There is no server. Messages travel with your files, through iCloud Drive, Dropbox or your NAS, and arrive on the other Macs when the sync delivers them.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es gibt keinen Server. Nachrichten reisen mit deinen Dateien über iCloud Drive, Dropbox oder dein NAS und kommen auf den anderen Macs an, sobald die Synchronisierung sie ausliefert."
+          }
+        }
+      }
     },
     "This Mac could not write its log into the folder. Nothing is lost: the changes are kept here and written once it works again.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Mac konnte sein Protokoll nicht in den Ordner schreiben. Verloren geht nichts: Die Änderungen bleiben hier und werden geschrieben, sobald es wieder geht."
+          }
+        }
+      }
     },
     "This Mac is called": {
       "extractionState": "manual",
@@ -2934,7 +3270,14 @@
     },
     "Three columns": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drei Spalten"
+          }
+        }
+      }
     },
     "Today": {
       "extractionState": "manual",
@@ -2960,7 +3303,14 @@
     },
     "Too much? In Settings, under Projects, set **Change stream** to *Only bigger events* (files added, deleted, moved or renamed) or to *Nothing — only what we write*. Messages always show, and the setting is yours alone.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu viel? Stell in den Einstellungen unter „Projekte“ den **Änderungsstrom** auf *Nur größere Ereignisse* (Dateien hinzugefügt, gelöscht, verschoben oder umbenannt) oder auf *Nichts — nur, was wir selbst schreiben*. Nachrichten erscheinen immer, und die Einstellung gilt nur für dich."
+          }
+        }
+      }
     },
     "Turn Off": {
       "extractionState": "manual",
@@ -2975,7 +3325,14 @@
     },
     "Turn on **Task** before sending to make it something to do. Open tasks collect under Tasks in the sidebar until somebody ticks them off.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schalte vor dem Senden **Aufgabe** ein, dann wird daraus etwas zu erledigen. Offene Aufgaben sammeln sich in der Seitenleiste unter „Aufgaben“, bis jemand sie abhakt."
+          }
+        }
+      }
     },
     "Turns this message into a task. Open tasks collect under Tasks in the sidebar until somebody ticks them off.": {
       "extractionState": "manual",
@@ -2990,11 +3347,25 @@
     },
     "Two common mistakes when setting up": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zwei häufige Fehler beim Einrichten"
+          }
+        }
+      }
     },
     "Two people saved the same file at the same moment. Open the folder and keep the version you want.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zwei Personen haben dieselbe Datei im selben Moment gesichert. Öffne den Ordner und behalte die Version, die du willst."
+          }
+        }
+      }
     },
     "Unknown": {
       "extractionState": "manual",
@@ -3075,7 +3446,14 @@
     },
     "Who a message is for": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für wen eine Nachricht ist"
+          }
+        }
+      }
     },
     "Who are you?": {
       "extractionState": "manual",
@@ -3101,7 +3479,14 @@
     },
     "With Task on, it is work for them: it is listed under their name in Tasks. Without it, it is a heads-up: a notification, nothing to tick off, and it does not appear in Tasks.": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit „Aufgabe“ ist es Arbeit für sie: Sie steht unter ihrem Namen in „Aufgaben“. Ohne ist es ein Hinweis: eine Mitteilung, nichts zum Abhaken, und in „Aufgaben“ taucht es nicht auf."
+          }
+        }
+      }
     },
     "Without file changes": {
       "extractionState": "manual",
@@ -3325,7 +3710,14 @@
     },
     "iCloud is not delivering changes from …": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud liefert die Änderungen von … nicht aus"
+          }
+        }
+      }
     },
     "iCloud made a conflict copy": {
       "extractionState": "manual",
@@ -3351,7 +3743,14 @@
     },
     "iCloud made a conflict copy of …": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud hat eine Konfliktkopie von … angelegt"
+          }
+        }
+      }
     },
     "macOS is waiting for your approval.": {
       "extractionState": "manual",
@@ -3485,17 +3884,38 @@
         }
       }
     },
-    "… changes have not reached the others yet": {
+    "… changes in … have not reached the others yet": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "… Änderungen in … sind noch nicht bei den anderen angekommen"
+          }
+        }
+      }
     },
     "… is not being watched": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "… wird nicht beobachtet"
+          }
+        }
+      }
     },
     "… is running a newer version": {
       "extractionState": "manual",
-      "localizations": {}
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "… hat eine neuere Version"
+          }
+        }
+      }
     }
   }
 }

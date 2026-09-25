@@ -48,6 +48,7 @@ On first launch:
 3. Leave *Start at login* on.
 
 Existing files are indexed silently. The history starts from the day you install.
+A *Getting Started* window then opens once; it stays in the Help menu.
 
 ## Using MacBench
 
@@ -66,17 +67,44 @@ with the field to write at the bottom](docs/screenshots/folder.png)
 - **Notify someone:** write @name. Only messages notify; file changes never do.
 - **See open tasks:** choose *Tasks* in the sidebar. They are grouped by person,
   with yours first.
+- **Open a file:** double-click it, in the file list or on any line about it.
 
 ![The task list, grouped by the person each task is for, yours
 first](docs/screenshots/tasks.png)
+
+### Getting started
+
+The *Getting Started* window (Help menu) explains the rest in English and
+German. Three things people ask about first:
+
+- **Messages travel with the files.** There is no server: what you write reaches
+  the others through the same sync as the folder, when that sync delivers it.
+- **Double-click opens a file** in its own app, as in the Finder. Space or
+  <kbd>⌘Y</kbd> previews it without downloading it from iCloud.
+- **For without Task is a heads-up.** The person is named in front of the message
+  and notified, but there is nothing to tick off and it does not appear under
+  Tasks. Pick the person before sending: choosing them later changes the name
+  shown but is not sure to notify.
+
+It also covers unread, the quick note, the change stream, archiving, what the
+banners at the top of the window mean, and the two most common setup mistakes:
+adding a folder *inside* a project someone already added, which starts a second
+history nobody else sees, and leaving *Start at login* off, which leaves your
+changes to be found later without your name.
 
 ### Keyboard shortcuts
 
 | Shortcut | Action |
 |---|---|
-| <kbd>⌃⌥⌘N</kbd> | Quick note (works from any app) |
-| <kbd>⌥⌘S</kbd> | Show or hide the right column |
+| <kbd>⌃⌥⌘N</kbd> | Quick note, from any app (change it in Settings) |
+| <kbd>⇧⌘O</kbd> | Add a project folder |
+| <kbd>⌘1</kbd> | Show or hide the sidebar |
+| <kbd>⌘2</kbd> | Show or hide the messages |
+| <kbd>⇧⌘L</kbd> | Latest activity (German: <kbd>⇧⌘N</kbd>) |
+| <kbd>⇧⌘T</kbd> | Tasks (German: <kbd>⇧⌘A</kbd>) |
+| <kbd>Space</kbd> or <kbd>⌘Y</kbd> | Preview the selected file |
 | <kbd>⇧⌘K</kbd> | Mark everything as read |
+| <kbd>Return</kbd> / <kbd>⇧Return</kbd> | Send / new line |
 | <kbd>⌘,</kbd> | Settings |
 
 ## How syncing works

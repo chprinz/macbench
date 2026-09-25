@@ -104,11 +104,11 @@ struct GettingStartedView: View {
                         Key("⌘2", "Show or hide the messages")
                         Key("⇧⌘" + Self.activityLetter, "Latest activity")
                         Key("⇧⌘" + Self.tasksLetter, "Tasks")
-                        Key(String(localized: "Space") + "  ⌘Y", "Preview the picked file")
+                        Key(String(localized: "Space") + " / ⌘Y", "Preview the picked file")
                         Key("⇧⌘K", "Mark everything as read")
                         Key("↩", "Send")
                         Key("⇧↩", "New line")
-                        Key("⎋", "Clear the search")
+                        Key("esc", "Clear the search")
                         Key("⌘,", "Settings")
                     }
                 }
@@ -185,7 +185,7 @@ private struct Key: View {
     var body: some View {
         GridRow {
             Text(verbatim: keys)
-                .font(.body.monospaced())
+                .foregroundStyle(.secondary)
                 .gridColumnAlignment(.trailing)
             Text(action)
         }
