@@ -1,6 +1,6 @@
 # MacBench
 
-**A shared activity feed and chat for project folders synced between Macs.**
+**A workbench for project folders shared between Macs: see what changed, and add comments and tasks to files.**
 
 MacBench is a macOS app for small teams who share project folders through iCloud
 Drive, Dropbox or a NAS. It shows what changed in those folders, who changed it,
