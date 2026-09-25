@@ -242,34 +242,12 @@ private struct TreeContextMenu: View {
             }
         }
         if item.isProject {
-            Menu("Change Stream") {
-                ForEach(Verbosity.allCases, id: \.self) { level in
-                    Button {
-                        model.setVerbosity(level, for: item.projectID)
-                    } label: {
-                        HStack {
-                            Text(title(for: level))
-                            if model.verbosity(for: item.projectID) == level {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                }
-            }
             Button("Mark Project as Read") { model.markAllRead(project: item.projectID) }
             Button("Check Folder Now") { Task { await model.rescan(item.projectID) } }
             Divider()
             Button("Archive Project") { Task { await model.setArchived(item.projectID, true) } }
                 .help("Stops watching it and takes it out of the lists. It comes back from Settings, with its history.")
             Button("Remove Project…", role: .destructive) { model.projectPendingRemoval = item.projectID }
-        }
-    }
-
-    private func title(for level: Verbosity) -> LocalizedStringKey {
-        switch level {
-        case .everything: "Everything"
-        case .majorOnly: "Only bigger events"
-        case .off: "Off — only what we write"
         }
     }
 }

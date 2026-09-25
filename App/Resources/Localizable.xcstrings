@@ -742,17 +742,6 @@
         }
       }
     },
-    "Change Stream": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Änderungsstrom"
-          }
-        }
-      }
-    },
     "Change stream": {
       "extractionState": "manual",
       "localizations": {
@@ -1843,17 +1832,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aus"
-          }
-        }
-      }
-    },
-    "Off — only what we write": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aus — nur, was wir selbst schreiben"
           }
         }
       }
