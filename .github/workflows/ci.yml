@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Core tests
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run core tests
+        working-directory: MacBenchCore
+        run: swift test
+
+  build:
+    name: App build
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install xcodegen
+        run: brew install xcodegen
+      - name: Build
+        run: ./build.sh MacBench Release
+
+      # A string with no German version is a bug that only shows up in front of
+      # the person who reads German, which is half of the intended audience.
+      - name: Check every string is translated
+        run: python3 tools/sync-strings.py build
+
+      # A build can succeed and ship nothing: actool once dropped the whole icon
+      # set with a warning nobody read, and the app shipped without an icon.
+      - name: Check the icon made it into the app
+        run: |
+          xcrun assetutil --info build/Build/Products/Release/MacBench.app/Contents/Resources/Assets.car \
+            | grep -q '"AppIcon"' || { echo "::error::AppIcon is missing from the build"; exit 1; }

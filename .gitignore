@@ -1,0 +1,14 @@
+.DS_Store
+# Generated from project.yml by build.sh - never edited by hand.
+*.xcodeproj/
+xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+build/
+.build/
+.swiftpm/
+# A build of your own: its target in project.local.yml, its icon beside
+# MacBench's under Branding/. See docs/development.md.
+project.local.yml
+/Branding/*
+!/Branding/MacBench/

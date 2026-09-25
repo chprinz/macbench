@@ -1,0 +1,62 @@
+name: MacBench
+options:
+  bundleIdPrefix: io.github.chprinz
+  developmentLanguage: en
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  MacBenchCore:
+    path: MacBenchCore
+
+# The app is a template so that a build of your own — another name, bundle
+# identifier and icon — is configuration rather than a fork: put a target using
+# this template in `project.local.yml` (see docs/development.md), and its icon
+# under `Branding/<Name>`. Neither is committed. Every build reads and writes the
+# same `.macbench` format, so different builds can share one folder.
+targetTemplates:
+  App:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+      - path: Branding/${brandFolder}
+    dependencies:
+      - package: MacBenchCore
+        product: MacBenchCore
+    settings:
+      base:
+        PRODUCT_NAME: ${productName}
+        PRODUCT_BUNDLE_IDENTIFIER: ${bundleID}
+        INFOPLIST_KEY_CFBundleDisplayName: ${productName}
+        MARKETING_VERSION: "0.3.6"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_EMIT_LOC_STRINGS: YES
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+        INFOPLIST_KEY_NSAppleEventsUsageDescription: "Reveals files in the Finder."
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_ENTITLEMENTS: App/Resources/MacBench.entitlements
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        DEVELOPMENT_TEAM: ""
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+        DEAD_CODE_STRIPPING: YES
+        COMBINE_HIDPI_IMAGES: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
+targets:
+  MacBench:
+    templates: [App]
+    templateAttributes:
+      productName: MacBench
+      bundleID: io.github.chprinz.MacBench
+      brandFolder: MacBench
