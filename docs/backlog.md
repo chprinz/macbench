@@ -37,6 +37,13 @@ someone's head. Newest observations at the top of each section.
 
 ## Technical
 
+- **A record that could not be written is not written later.** A failed write
+  to this Mac's log now shows as a banner and clears on the next success, but
+  what failed is in the index only: the other Macs never learn of that file,
+  rename or message. A message that failed also stays here while its text goes
+  back into the field, so sending it again makes two. Keeping unwritten records
+  in a queue that the next successful write empties first would close it.
+
 - **FSEvents batches are handed to the engine in unstructured tasks**, one per
   callback, and nothing guarantees they run in the order they were delivered.
   In practice a second apart; a serial hand-off (an `AsyncStream`) would make

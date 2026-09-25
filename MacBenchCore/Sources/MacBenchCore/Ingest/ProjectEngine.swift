@@ -26,7 +26,26 @@ public actor ProjectEngine {
         public var deferredIncoming = 0
         public var lastSync: SyncReport?
         public var unresolvedConflicts: [String] = []
-        public var lastError: String?
+        /// What is wrong right now, one line per kind. Each is taken back by the
+        /// next success of the same kind: a single "last error" was set and never
+        /// cleared, so a log that could not be written for a minute went on saying
+        /// so until the app was restarted — and a warning that is not true any
+        /// more teaches people to ignore the ones that are.
+        public var problems: [Problem: String] = [:]
+    }
+
+    public enum Problem: Int, Sendable, Hashable, Comparable, CaseIterable {
+        /// The folder was moved or renamed under the engine. Lasts until it is
+        /// started again.
+        case folder
+        /// This Mac's log could not be written: the other Macs are not told.
+        case log
+        /// The index refused something.
+        case index
+        /// The other Macs' logs could not be read.
+        case sync
+
+        public static func < (lhs: Problem, rhs: Problem) -> Bool { lhs.rawValue < rhs.rawValue }
     }
 
     // MARK: - Configuration
@@ -205,6 +224,7 @@ public actor ProjectEngine {
 
     private func buildInitialIndex() async {
         status.phase = .buildingIndex(found: 0)
+        status.problems[.index] = nil
         let scanner = FileScanner(exclusions: exclusions)
         let result = scanner.scan(root: root)
         let now = clock.now
@@ -218,7 +238,7 @@ public actor ProjectEngine {
         func flush() {
             guard !batch.isEmpty else { return }
             do { try store.upsert(nodes: batch) }
-            catch { status.lastError = error.localizedDescription }
+            catch { status.problems[.index] = error.localizedDescription }
             found += batch.count
             batch.removeAll(keepingCapacity: true)
             status.phase = .buildingIndex(found: found)
@@ -255,7 +275,7 @@ public actor ProjectEngine {
             if batch.count >= 500 { flush() }
         }
         flush()
-        _ = try? await writer.append(registrations)
+        _ = try? await record(registrations)
         try? store.setFSEventCursor(nil, scannedAt: now, for: projectID)
         rememberHistoryUUID()
     }
@@ -328,7 +348,7 @@ public actor ProjectEngine {
             updated.fileSize = item.fileSize
             updated.lastSeenAt = now
             try? store.upsert(node: updated, inode: item.fileIdentifier.map(Int64.init))
-            _ = try? await writer.append([.nodeRename(NodeRenameRecord(
+            _ = try? await record([.nodeRename(NodeRenameRecord(
                 id: node.id, from: from, to: item.relativePath, at: now,
                 isDirectory: item.isDirectory))])
             events.append(CoalescedEvent(
@@ -340,14 +360,14 @@ public actor ProjectEngine {
         for node in diff.removed where seenHere.contains(node.id) {
             try? store.setNodeState(.deleted, id: node.id, at: now)
             lineCounter.forget(node.id)
-            _ = try? await writer.append([.nodeState(NodeStateRecord(id: node.id, state: .deleted, at: now))])
+            _ = try? await record([.nodeState(NodeStateRecord(id: node.id, state: .deleted, at: now))])
             events.append(CoalescedEvent(
                 nodeID: node.id, relativePath: node.relativePath, isDirectory: node.isDirectory,
                 event: FileEvent(type: .removed, backfilled: true),
                 contentDate: node.contentModifiedAt ?? now, observedAt: now))
         }
 
-        if !registrations.isEmpty { _ = try? await writer.append(registrations) }
+        if !registrations.isEmpty { _ = try? await record(registrations) }
 
         for event in events {
             let verdict = resolver.inferBackfill(changeAt: event.contentDate,
@@ -461,10 +481,11 @@ public actor ProjectEngine {
         do {
             let report = try peerSync.pull(root: root, now: clock.now)
             status.lastSync = report
+            status.problems[.sync] = nil
             // A peer explaining a change we were unsure about resolves it now.
             await flushDeferred(force: false)
         } catch {
-            status.lastError = error.localizedDescription
+            status.problems[.sync] = error.localizedDescription
         }
     }
 
@@ -479,7 +500,7 @@ public actor ProjectEngine {
 
     private func handle(_ batch: FSBatch) async {
         if batch.rootChanged {
-            status.lastError = "The project folder was moved or renamed."
+            status.problems[.folder] = "The project folder was moved or renamed."
             return
         }
         if batch.needsFullScan {
@@ -589,7 +610,7 @@ public actor ProjectEngine {
             try? store.setNodeState(.present, id: node.id, at: now)
             let isRename = (node.relativePath as NSString).deletingLastPathComponent
                 == (relative as NSString).deletingLastPathComponent
-            _ = try? await writer.append([.nodeRename(NodeRenameRecord(
+            _ = try? await record([.nodeRename(NodeRenameRecord(
                 id: node.id, from: node.relativePath, to: relative, at: now,
                 isDirectory: isDirectory))])
             var event = RawFileEvent(nodeID: node.id, relativePath: relative,
@@ -633,7 +654,7 @@ public actor ProjectEngine {
                         firstSeenAt: existing?.firstSeenAt ?? modifiedAt, lastSeenAt: now)
         try? store.upsert(node: node, inode: identifier.map(Int64.init))
         if existing == nil {
-            _ = try? await writer.append([.node(NodeRecord(id: nodeID, path: relative,
+            _ = try? await record([.node(NodeRecord(id: nodeID, path: relative,
                                                            isDirectory: isDirectory,
                                                            firstSeenAt: node.firstSeenAt))])
         }
@@ -769,17 +790,37 @@ public actor ProjectEngine {
     }
 
     private func commit(_ entry: Entry) async {
+        let outcome: EntryMergeOutcome
         do {
-            let outcome = try store.merge(entry: entry)
-            switch outcome {
-            case .inserted, .replacedExisting:
-                _ = try await writer.append([.entry(EntryRecord(entry: entry))])
-            case .duplicate, .updated:
-                break  // the machine it happened on already said it
-            }
-            markAccountedFor(entry)
+            outcome = try store.merge(entry: entry)
+            status.problems[.index] = nil
         } catch {
-            status.lastError = error.localizedDescription
+            status.problems[.index] = error.localizedDescription
+            return
+        }
+        switch outcome {
+        case .inserted, .replacedExisting:
+            // A failure is on the status already, from `record`.
+            guard (try? await record([.entry(EntryRecord(entry: entry))])) != nil else { return }
+        case .duplicate, .updated:
+            break  // the machine it happened on already said it
+        }
+        markAccountedFor(entry)
+    }
+
+    /// Every record this Mac writes goes through here, so that a write that fails
+    /// is seen — most callers used to drop it with a `try?`, and a rename or a
+    /// new file the other Macs were never told about left no trace here — and
+    /// so that the next one that succeeds takes the warning back.
+    @discardableResult
+    private func record(_ bodies: [LogBody]) async throws -> [LogRecord] {
+        do {
+            let written = try await writer.append(bodies)
+            status.problems[.log] = nil
+            return written
+        } catch {
+            status.problems[.log] = error.localizedDescription
+            throw error
         }
     }
 
@@ -932,18 +973,18 @@ public actor ProjectEngine {
                           isTask: isTask, assigneeID: assignee, replyToID: replyTo,
                           categoryIDs: categories)
         try store.merge(entry: entry)
-        _ = try await writer.append([.entry(EntryRecord(entry: entry))])
+        _ = try await record([.entry(EntryRecord(entry: entry))])
         return entry
     }
 
     public func patch(_ patch: EntryPatchRecord) async throws {
         let now = clock.now
         try store.apply(patch: patch, at: now)
-        _ = try await writer.append([.entryPatch(patch)])
+        _ = try await record([.entryPatch(patch)])
     }
 
     public func announceSelf() async throws {
-        _ = try await writer.append([.member(identity.member)])
+        _ = try await record([.member(identity.member)])
     }
 
     /// Somebody changed their own name or colour. The engine used to keep the
@@ -954,11 +995,11 @@ public actor ProjectEngine {
         guard member.id == identity.member.id else { return }
         identity.member = member
         try await writer.update(member: member)
-        _ = try await writer.append([.member(member)])
+        _ = try await record([.member(member)])
     }
 
     public func publish(categories: [Category]) async throws {
-        _ = try await writer.append(categories.map { .category($0) })
+        _ = try await record(categories.map { .category($0) })
     }
 
     public func setArchiveAfterDays(_ days: Int) {

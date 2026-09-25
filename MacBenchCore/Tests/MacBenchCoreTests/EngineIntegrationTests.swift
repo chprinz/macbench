@@ -107,6 +107,26 @@ struct EngineIntegrationTests {
     /// The one thing that cannot be seen from inside the app: a project that is
     /// indexed, looks live, says nothing is wrong, and is not being watched at all.
     /// The first-ever run of a project used to take exactly that branch.
+    /// A log that could not be written for a minute used to say so until the
+    /// app was restarted, and most writes did not say so at all.
+    @Test("A log that cannot be written says so, and stops saying so once it can")
+    func logProblemComesAndGoes() async throws {
+        let bench = try Bench()
+        defer { bench.cleanUp() }
+        _ = try await bench.engine.post(text: "eins")
+        #expect(await bench.engine.status.problems.isEmpty)
+
+        let segment = LogLayout.deviceDirectory(in: bench.root, device: bench.identity.deviceID)
+            .appending(path: LogLayout.segmentName(1)).path(percentEncoded: false)
+        try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: segment)
+        await #expect(throws: LogError.self) { try await bench.engine.post(text: "zwei") }
+        #expect(await bench.engine.status.problems[.log] != nil)
+
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: segment)
+        _ = try await bench.engine.post(text: "drei")
+        #expect(await bench.engine.status.problems[.log] == nil)
+    }
+
     @Test("A folder is watched from the first run, not the second")
     func watchesFromTheFirstRun() async throws {
         let bench = try Bench()

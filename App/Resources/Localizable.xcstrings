@@ -2461,6 +2461,17 @@
         }
       }
     },
+    "The change did not go through": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Änderung ist nicht durchgegangen"
+          }
+        }
+      }
+    },
     "The filter above the projects in the sidebar applies here too. Click to show everything again.": {
       "localizations": {
         "de": {
@@ -2775,6 +2786,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Eure Dateien bleiben, wo sie sind, und der Verlauf daneben in .macbench auch. Fügst du den Ordner wieder hinzu, wird er neu eingelesen."
+          }
+        }
+      }
+    },
+    "Your message did not go through": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Nachricht ist nicht durchgegangen"
           }
         }
       }

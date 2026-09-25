@@ -464,7 +464,27 @@ final class AppModel {
     private var arrivedTask: Task<Void, Never>?
 
     func dismiss(_ banner: Banner) {
-        dismissedBanners.insert(banner.id)
+        // Something that went wrong once is gone when put away. Should it happen
+        // again it is news again, which a lasting condition put away is not.
+        if failures.contains(where: { $0.id == banner.id }) {
+            failures.removeAll { $0.id == banner.id }
+        } else {
+            dismissedBanners.insert(banner.id)
+        }
+        refreshBanners()
+    }
+
+    /// Things somebody asked for that did not happen: a folder not added, a
+    /// message or a change that did not go through. Held until put away. They
+    /// used to be appended to the banners directly, and the next refresh —
+    /// within a fraction of a second, on any change to the database — rebuilt
+    /// the list without them, so the one message saying so was never seen.
+    private var failures: [Banner] = []
+
+    private func reportFailure(_ text: String, _ error: any Error) {
+        let banner = Banner(text: text, detail: error.localizedDescription)
+        failures.removeAll { $0.id == banner.id }
+        failures.append(banner)
         refreshBanners()
     }
 
@@ -792,10 +812,7 @@ final class AppModel {
     private func refreshBanners() {
         refreshCatchUp()
         var found: [Banner] = []
-        if let addFailure {
-            found.append(Banner(text: String(localized: "The folder could not be added"),
-                                detail: addFailure))
-        }
+        found.append(contentsOf: failures)
         if indexWasRebuilt && projects.isEmpty {
             found.append(Banner(
                 text: String(localized: "The list of projects had to be started again"),
@@ -819,7 +836,7 @@ final class AppModel {
             // What the engine could not do: write its log, keep watching a folder
             // that was renamed under it. It used to go into a status nobody read,
             // which made a project that had stopped working look like a quiet one.
-            if let error = status.lastError {
+            for (_, error) in status.problems.sorted(by: { $0.key < $1.key }) {
                 found.append(Banner(text: String(localized: "Something went wrong in \(name)"),
                                     detail: error))
             }
@@ -1061,7 +1078,7 @@ final class AppModel {
                                       assignee: assignee, categories: categories, replyTo: replyTo)
             return true
         } catch {
-            banners.append(Banner(text: error.localizedDescription))
+            reportFailure(String(localized: "Your message did not go through"), error)
             return false
         }
     }
@@ -1098,7 +1115,7 @@ final class AppModel {
     private func patch(_ record: EntryPatchRecord, in projectID: UUID) async {
         guard let engine = engines[projectID] else { return }
         do { try await engine.patch(record) }
-        catch { banners.append(Banner(text: error.localizedDescription)) }
+        catch { reportFailure(String(localized: "The change did not go through"), error) }
     }
 
     /// Rewriting or withdrawing is the author's business; who a note is for and
@@ -1227,17 +1244,14 @@ final class AppModel {
             projects = (try? store.projects()) ?? []
             await startEngine(for: project, identity: identity)
             selection = .project(project.id)
-            addFailure = nil
+            failures.removeAll { $0.text == Self.addFailedText }
             refreshAll()
         } catch {
-            addFailure = error.localizedDescription
-            refreshBanners()
+            reportFailure(Self.addFailedText, error)
         }
     }
 
-    /// Why the last folder could not be added. Held as state for the same reason
-    /// as `unreachableProjects`: an appended banner lasted until the next refresh.
-    private var addFailure: String?
+    private static var addFailedText: String { String(localized: "The folder could not be added") }
 
     func removeProject(_ id: UUID) async {
         if let engine = engines[id] { await engine.stop() }
