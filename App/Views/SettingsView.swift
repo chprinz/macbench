@@ -107,11 +107,24 @@ struct ProjectSettings: View {
 
     var body: some View {
         HSplitView {
-            List(model.projects, selection: $selected) { project in
-                Text(project.name)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .tag(project.id)
+            List(selection: $selected) {
+                ForEach(model.projects) { project in
+                    Text(project.name)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .tag(project.id)
+                }
+                if !model.archivedProjects.isEmpty {
+                    Section("Archived") {
+                        ForEach(model.archivedProjects) { project in
+                            Text(project.name)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .foregroundStyle(.secondary)
+                                .tag(project.id)
+                        }
+                    }
+                }
             }
             .frame(minWidth: 140, idealWidth: listWidth, maxWidth: 320)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
@@ -121,6 +134,9 @@ struct ProjectSettings: View {
             Group {
                 if let selected, let project = model.projects.first(where: { $0.id == selected }) {
                     detail(for: project)
+                } else if let selected,
+                          let project = model.archivedProjects.first(where: { $0.id == selected }) {
+                    archivedDetail(for: project)
                 } else {
                     Text("Select a project").foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -129,6 +145,32 @@ struct ProjectSettings: View {
             .frame(minWidth: 320)
         }
         .onAppear { selected = selected ?? model.projects.first?.id }
+    }
+
+    private func archivedDetail(for project: Project) -> some View {
+        Form {
+            Section {
+                Label("Archived", systemImage: "archivebox")
+                Text("Not watched and not in the lists. Its history is kept, here and in the folder.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Button("Bring Back") { Task { await model.setArchived(project.id, false) } }
+                Text("Anything that changed in the folder meanwhile is found by comparing it, with approximate times.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section {
+                Button("Remove project…", role: .destructive) { isConfirmingRemoval = true }
+            }
+        }
+        .formStyle(.grouped)
+        .confirmationDialog("Stop watching “\(project.name)”?",
+                            isPresented: $isConfirmingRemoval, titleVisibility: .visible) {
+            Button("Remove Project", role: .destructive) {
+                Task { await model.removeProject(project.id) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Your files stay where they are, and so does the history stored beside them in .macbench. Adding the folder again reads it back.")
+        }
     }
 
     private func detail(for project: Project) -> some View {

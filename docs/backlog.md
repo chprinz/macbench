@@ -10,8 +10,8 @@ someone's head. Newest observations at the top of each section.
 - **Foundation Models** — natural-language search and the weekly review. Marked
   optional in the spec and deliberately deferred. The query layer they would
   drive already exists.
-- **Project archiving** exists in the store (`setProjectArchived`) with no way to
-  reach it, and projects cannot be reordered although `sortIndex` is there.
+- **Projects cannot be reordered** although `sortIndex` is there; they sort by
+  when they were added.
 
 ## Rough edges
 

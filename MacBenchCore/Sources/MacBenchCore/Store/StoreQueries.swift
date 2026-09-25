@@ -130,16 +130,16 @@ extension Store {
                 conditions.append("e.nodeID = ?")
                 args.append(node.id)
             case .activity:
-                // Nothing to add: every project, everything in it, your own
-                // entries included — "what has happened" is not a question about
-                // somebody else.
-                break
+                // Every project, everything in it, your own entries included —
+                // "what has happened" is not a question about somebody else. Only
+                // a project put away is left out: that is what putting it away is.
+                conditions.append("p.isArchived = 0")
             case .openTasks:
                 // The task list is a scope, not a status. Pinning it to the open
                 // ones here as well made "Done" a filter that could only ever come
                 // back empty — the one place people go looking for what they have
                 // just ticked off.
-                conditions.append("e.isTask = 1")
+                conditions.append("e.isTask = 1 AND p.isArchived = 0")
                 if filter.status != .doneTasks { conditions.append("e.isDone = 0") }
             }
 

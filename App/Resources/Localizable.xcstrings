@@ -610,6 +610,17 @@
         }
       }
     },
+    "Anything that changed in the folder meanwhile is found by comparing it, with approximate times.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was sich im Ordner inzwischen geändert hat, wird durch einen Vergleich gefunden, mit ungefähren Zeiten."
+          }
+        }
+      }
+    },
     "Archive": {
       "extractionState": "manual",
       "localizations": {
@@ -617,6 +628,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Archiv"
+          }
+        }
+      }
+    },
+    "Archive Project": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Projekt archivieren"
+          }
+        }
+      }
+    },
+    "Archived": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archiviert"
           }
         }
       }
@@ -661,6 +694,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ihr habt diese Datei gleichzeitig gespeichert. Öffne den Ordner und behalte die Fassung, die du willst."
+          }
+        }
+      }
+    },
+    "Bring Back": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurückholen"
           }
         }
       }
@@ -1661,6 +1705,17 @@
         }
       }
     },
+    "Not watched and not in the lists. Its history is kept, here and in the folder.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird nicht beobachtet und steht in keiner Liste. Der Verlauf bleibt erhalten, hier und im Ordner."
+          }
+        }
+      }
+    },
     "Nothing about this file yet": {
       "extractionState": "manual",
       "localizations": {
@@ -2484,6 +2539,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "„%@“ nicht mehr beobachten?"
+          }
+        }
+      }
+    },
+    "Stops watching it and takes it out of the lists. It comes back from Settings, with its history.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beobachtet es nicht mehr und nimmt es aus den Listen. In den Einstellungen lässt es sich mit seinem Verlauf zurückholen."
           }
         }
       }

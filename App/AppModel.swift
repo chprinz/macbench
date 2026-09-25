@@ -270,6 +270,8 @@ final class AppModel {
     /// than in the row, because the row's context menu is gone by the time the
     /// dialog would open.
     var projectPendingRemoval: UUID?
+    /// Projects put away, for Settings, which is where they come back from.
+    private(set) var archivedProjects: [Project] = []
 
     enum SidebarFilter: String, CaseIterable, Identifiable {
         case all, unread, open
@@ -683,6 +685,7 @@ final class AppModel {
         guard let viewer = identity?.member.id else { return }
         mirrorProjects()
         projects = (try? store.projects()) ?? []
+        archivedProjects = (try? store.projects(includeArchived: true))?.filter(\.isArchived) ?? []
         // A project archived or removed since it was picked would leave a list
         // narrowed to something with no pill to switch it off again.
         let known = Set(projects.map(\.id))
@@ -1400,14 +1403,36 @@ final class AppModel {
     private static var addFailedText: String { String(localized: "The folder could not be added") }
 
     func removeProject(_ id: UUID) async {
+        await stopEngine(for: id)
+        try? store.removeProject(id)
+        refreshAll()
+    }
+
+    /// Put away: not watched, not in the sidebar, not in the feed — and kept, with
+    /// its history, to be brought back from Settings. For a job that is done but
+    /// may come back, where removing it would mean adding the folder again.
+    func setArchived(_ id: UUID, _ archived: Bool) async {
+        try? store.setProjectArchived(id, archived)
+        if archived {
+            await stopEngine(for: id)
+        } else if let identity, let project = try? store.projects(includeArchived: true)
+            .first(where: { $0.id == id }) {
+            await startEngine(for: project, identity: identity)
+        }
+        refreshAll()
+    }
+
+    private func stopEngine(for id: UUID) async {
         if let engine = engines[id] { await engine.stop() }
         engines[id] = nil
         statusTasks[id]?.cancel()
         statusTasks[id] = nil
+        engineStatus[id] = nil
         access.release(project: id)
         unreachableProjects[id] = nil
-        try? store.removeProject(id)
-        refreshAll()
+        // Standing inside a project that is no longer listed would leave the
+        // window showing a folder the sidebar does not have.
+        if currentProjectID == id { selection = .activity }
     }
 
     func revealFolder(_ item: TreeItem) {

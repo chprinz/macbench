@@ -321,6 +321,22 @@ struct ViewTests {
         #expect(try f.store.activitySignals(viewer: f.anna.id).unreadTotal == 0)
     }
 
+    @Test("An archived project is out of the feed and the tasks, and back when brought back")
+    func archivedProjectIsPutAway() throws {
+        let f = try Fixture()
+        let entry = Entry(projectID: f.project.id, authorID: f.anna.id, createdAt: t0, observedAt: t0,
+                          kind: .message, text: "erledigt", isTask: true)
+        try f.store.merge(entry: entry)
+        try f.store.setProjectArchived(f.project.id, true)
+        #expect(try f.store.timeline(scope: .activity, viewer: f.ben.id).isEmpty)
+        #expect(try f.store.timeline(scope: .openTasks, viewer: f.ben.id).isEmpty)
+        #expect(try f.store.timeline(scope: .project(f.project.id), viewer: f.ben.id).count == 1,
+                "its own history is still there")
+        try f.store.setProjectArchived(f.project.id, false)
+        #expect(try f.store.timeline(scope: .activity, viewer: f.ben.id).count == 1)
+        #expect(try f.store.timeline(scope: .openTasks, viewer: f.ben.id).count == 1)
+    }
+
     @Test("A deleted message comes back when the delete is undone")
     func retractionCanBeUndone() throws {
         let f = try Fixture()

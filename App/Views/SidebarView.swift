@@ -259,6 +259,8 @@ private struct TreeContextMenu: View {
             Button("Mark Project as Read") { model.markAllRead(project: item.projectID) }
             Button("Check Folder Now") { Task { await model.rescan(item.projectID) } }
             Divider()
+            Button("Archive Project") { Task { await model.setArchived(item.projectID, true) } }
+                .help("Stops watching it and takes it out of the lists. It comes back from Settings, with its history.")
             Button("Remove Project…", role: .destructive) { model.projectPendingRemoval = item.projectID }
         }
     }
