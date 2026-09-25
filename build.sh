@@ -14,8 +14,10 @@ spec=project.yml
 [[ -f project.local.yml ]] && spec=project.local.yml
 xcodegen generate --spec "$spec" --quiet
 # The build number is the commit count, so two builds of the same version can be
-# told apart - which is the only moment a build number is ever wanted.
-BUILD_NUMBER="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
+# told apart - which is the only moment a build number is ever wanted. The
+# history was squashed into one commit at 0.3.6, after 79; the offset keeps the
+# numbers rising past the builds made before that.
+BUILD_NUMBER="$(( $(git rev-list --count HEAD 2>/dev/null || echo 1) + 79 ))"
 xcodebuild -project MacBench.xcodeproj -scheme "${1:-MacBench}" -configuration "${2:-Debug}" \
   -derivedDataPath "${DERIVED_DATA:-build}" \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" build "${@:3}"
