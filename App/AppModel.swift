@@ -416,6 +416,13 @@ final class AppModel {
 
     /// Re-reads the stored shortcut and rebinds it. Called at launch and whenever
     /// it is changed in Settings, so a new combination works immediately.
+    /// The quick note's shortcut as it reads, or nil when it was cleared in
+    /// Settings. The same reading of the setting as `installHotKey`.
+    var quickCaptureShortcut: String? {
+        let stored = try? store.setting(Self.hotKeyKey, as: GlobalHotKey.StoredCombination.self)
+        return (stored?.combination ?? (stored == nil ? .default : nil))?.displayString
+    }
+
     func installHotKey() {
         let stored = try? store.setting(Self.hotKeyKey, as: GlobalHotKey.StoredCombination.self)
         guard let combination = stored?.combination ?? (stored == nil ? .default : nil) else {

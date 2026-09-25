@@ -5,6 +5,7 @@ import MacBenchCore
 /// which folder to watch, and whether to start with the Mac.
 struct OnboardingView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.openWindow) private var openWindow
     @State private var name = NSFullUserName().isEmpty ? "" : NSFullUserName()
     @State private var colorHex = MemberPalette.colors[0]
     @State private var deviceName = Host.current().localizedName ?? "This Mac"
@@ -132,6 +133,9 @@ struct OnboardingView: View {
             await model.completeOnboarding(name: name, colorHex: colorHex,
                                            deviceName: deviceName, existingMember: joiningAs)
             if let pickedFolder { await model.addProject(url: pickedFolder) }
+            // Once, by itself, now that there is a window to explain. After this
+            // it lives in the Help menu.
+            openWindow(id: GettingStartedView.windowID)
         }
     }
 

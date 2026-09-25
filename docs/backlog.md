@@ -44,7 +44,7 @@ someone's head. Newest observations at the top of each section.
 
 ## Wishlist
 
-- **Conflict resolution.** iCloud conflict copies are detected and announced;
+- **Conflict resolution** (after 0.4). iCloud conflict copies are detected and announced;
   they cannot be resolved in the app. `NSFileVersion.unresolvedConflictVersionsOfItem`
   gives the versions, dates and sizes needed to offer a choice.
 - **`#file` to link a file by typing**, the counterpart of `@name`. Dropping a

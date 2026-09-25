@@ -41,6 +41,13 @@ struct MacBenchApp: App {
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
+        Window("Getting Started", id: GettingStartedView.windowID) {
+            GettingStartedView()
+                .environment(model)
+        }
+        .defaultSize(width: 640, height: 720)
+        .defaultPosition(.center)
+
         Settings {
             SettingsView()
                 .environment(model)
@@ -147,12 +154,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         return !NSApp.windows.contains { isMainWindow($0) && $0.isVisible }
     }
 
-    /// A Dock icon while there is a window worth switching to — the main window or
-    /// Settings, minimised ones included, since the Dock is the only way back to
-    /// those. The quick note is not one: it comes and goes with its shortcut.
+    /// A Dock icon while there is a window worth switching to — the main window,
+    /// Settings or the guide, minimised ones included, since the Dock is the only
+    /// way back to those. The quick note is not one: it comes and goes with its
+    /// shortcut.
     static func updateDockPresence() {
         let wantsDock = NSApp.windows.contains { window in
-            (isMainWindow(window) || isSettingsWindow(window))
+            (isMainWindow(window) || isSettingsWindow(window) || isGuideWindow(window))
                 && (window.isVisible || window.isMiniaturized)
         }
         let policy: NSApplication.ActivationPolicy = wantsDock ? .regular : .accessory
@@ -161,6 +169,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     private static func isMainWindow(_ window: NSWindow) -> Bool {
         window.identifier?.rawValue.hasPrefix(mainWindowID) == true
+    }
+
+    private static func isGuideWindow(_ window: NSWindow) -> Bool {
+        window.identifier?.rawValue.hasPrefix(GettingStartedView.windowID) == true
     }
 
     private static func isSettingsWindow(_ window: NSWindow) -> Bool {
@@ -254,6 +266,7 @@ struct MacBenchCommands: Commands {
                 .keyboardShortcut("k", modifiers: [.command, .shift])
         }
         CommandGroup(replacing: .help) {
+            Button("Getting Started") { openWindow(id: GettingStartedView.windowID) }
             Link("\(Brand.name) on GitHub", destination: Brand.repository)
         }
     }
