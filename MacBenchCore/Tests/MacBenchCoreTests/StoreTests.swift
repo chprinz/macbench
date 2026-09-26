@@ -734,3 +734,42 @@ struct MentionTests {
         #expect(matches.first.map { String(text[$0.range]) } == "@Anna Maria")
     }
 }
+
+@Suite("Store: writing about a folder")
+struct FolderEntryTests {
+
+    @Test("A dot belongs to the folder a file is in, or to the folder itself")
+    func signalsNameTheFolder() throws {
+        let f = try Fixture()
+        let layout = try f.node("Layout", isDirectory: true)
+        let drafts = try f.node("Layout/Entwürfe", isDirectory: true)
+        let poster = try f.node("Layout/plakat.afdesign")
+        for (node, text) in [(drafts, "alt, bitte aufräumen"), (poster, "Farben passen"),
+                             (layout, "Ordner fürs Plakat")] as [(Node, String)] {
+            try f.store.merge(entry: Entry(projectID: f.project.id, nodeID: node.id,
+                                           authorID: f.anna.id, createdAt: t0, observedAt: t0,
+                                           kind: .message, text: text, isTask: true))
+        }
+        try f.store.merge(entry: Entry(projectID: f.project.id, authorID: f.anna.id,
+                                       createdAt: t0, observedAt: t0, kind: .message, text: "Hallo"))
+
+        let signals = try f.store.activitySignals(viewer: f.ben.id)
+        #expect(signals.unreadFolders[f.project.id]?.sorted()
+                == ["", "Layout", "Layout", "Layout/Entwürfe"])
+        #expect(signals.openTaskFolders[f.project.id]?.sorted()
+                == ["Layout", "Layout", "Layout/Entwürfe"])
+    }
+
+    @Test("What was said about a folder is in its stream and in the one above")
+    func folderStreamIncludesTheFolder() throws {
+        let f = try Fixture()
+        let layout = try f.node("Layout", isDirectory: true)
+        let drafts = try f.node("Layout/Entwürfe", isDirectory: true)
+        let note = Entry(projectID: f.project.id, nodeID: drafts.id, authorID: f.anna.id,
+                         createdAt: t0, observedAt: t0, kind: .message, text: "alt, bitte aufräumen")
+        try f.store.merge(entry: note)
+
+        #expect(try f.store.timeline(scope: .folder(drafts.id), viewer: f.ben.id).map(\.id) == [note.id])
+        #expect(try f.store.timeline(scope: .folder(layout.id), viewer: f.ben.id).map(\.id) == [note.id])
+    }
+}

@@ -69,7 +69,7 @@ struct TimelineView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onChange(of: model.selection) { _, _ in reset() }
-        .onChange(of: model.selectedFile) { _, _ in reset() }
+        .onChange(of: model.selectedNodeID) { _, _ in reset() }
         .onChange(of: model.isSearching) { _, _ in reset() }
     }
 
@@ -305,7 +305,7 @@ struct EntryRow: View {
                     // what kind of line this is are shorter and say more. Under a
                     // heading that already names the file it is left out: every
                     // line repeated it, cut down to "26-09…fassung.txt".
-                    if let node = fileNode, !isAboutStreamFile {
+                    if let node = fileNode, !isAboutStreamNode {
                         FileTag(node: node)
                             .layoutPriority(-1)
                     }
@@ -464,8 +464,8 @@ struct EntryRow: View {
     }
 
     /// In the conversation column, about the file its heading names.
-    private var isAboutStreamFile: Bool {
-        !showsPath && fileNode != nil && fileNode?.id == model.streamFileID
+    private var isAboutStreamNode: Bool {
+        !showsPath && fileNode != nil && fileNode?.id == model.streamNodeID
     }
 
     /// The sentence with the file's name taken out of it, so the name can be the
@@ -703,7 +703,7 @@ struct EntryMenu: View {
             if model.canOpenInMarkEdit(node) {
                 Button("Open in MarkEdit") { model.openInMarkEdit(node) }
             }
-            Button("Go to File") { model.focus(node: node) }
+            Button(node.isDirectory ? "Go to Folder" : "Go to File") { model.focus(node: node) }
             Divider()
         }
 

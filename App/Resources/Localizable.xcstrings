@@ -1423,6 +1423,17 @@
         }
       }
     },
+    "Go to Folder": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Ordner"
+          }
+        }
+      }
+    },
     "Green": {
       "extractionState": "manual",
       "localizations": {
@@ -1958,6 +1969,17 @@
         }
       }
     },
+    "Nothing about this folder yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu diesem Ordner noch nichts"
+          }
+        }
+      }
+    },
     "Nothing excluded beyond the built-in list of cache and lock files.": {
       "extractionState": "manual",
       "localizations": {
@@ -2179,6 +2201,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Öffnen"
+          }
+        }
+      }
+    },
+    "Open Folder": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner öffnen"
           }
         }
       }
@@ -2617,6 +2650,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Verlauf der Datei zeigen"
+          }
+        }
+      }
+    },
+    "Show Folder History": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verlauf des Ordners zeigen"
           }
         }
       }
@@ -3319,6 +3363,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Etwas zu dieser Datei schreiben…"
+          }
+        }
+      }
+    },
+    "Write something about this folder…": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etwas zu diesem Ordner schreiben…"
           }
         }
       }

@@ -261,7 +261,7 @@ struct MacBenchCommands: Commands {
             // shortcut nobody can find in a menu.
             Button("Quick Look") { model.toggleQuickLookForSelection() }
                 .keyboardShortcut("y", modifiers: .command)
-                .disabled(model.selectedFileNode.map { !model.canQuickLook($0) } ?? true)
+                .disabled(model.selectedNode.map { !model.canQuickLook($0) } ?? true)
             Button("Mark Everything as Read") { model.markAllRead(project: nil) }
                 .keyboardShortcut("k", modifiers: [.command, .shift])
         }

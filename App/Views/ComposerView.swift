@@ -34,7 +34,7 @@ struct ComposerView: View {
             }
             if let attachedNode {
                 HStack(spacing: 6) {
-                    Image(systemName: "paperclip").font(.caption)
+                    Image(systemName: attachedNode.isDirectory ? "folder" : "paperclip").font(.caption)
                     Text(attachedNode.relativePath).font(.caption).lineLimit(1).truncationMode(.middle)
                     Button {
                         self.attachedNode = nil
@@ -113,17 +113,18 @@ struct ComposerView: View {
             return true
         } isTargeted: { isDropTarget = $0 }
         .onChange(of: model.selection) { _, _ in attachedNode = defaultNode }
-        .onChange(of: model.selectedFile) { _, _ in attachedNode = defaultNode }
+        .onChange(of: model.selectedNodeID) { _, _ in attachedNode = defaultNode }
         .onChange(of: model.searchPick?.id) { _, _ in attachedNode = defaultNode }
         .onChange(of: model.isSearching) { _, _ in attachedNode = defaultNode }
         .onAppear { attachedNode = defaultNode }
     }
 
     private var prompt: LocalizedStringKey {
-        attachedNode == nil ? "Write something…" : "Write something about this file…"
+        guard let attachedNode else { return "Write something…" }
+        return attachedNode.isDirectory ? "Write something about this folder…" : "Write something about this file…"
     }
 
-    private var defaultNode: Node? { model.selectedFileNode }
+    private var defaultNode: Node? { model.composerNode }
 
     /// A name picked from the menu wins; otherwise whoever the text names. Typing
     /// "@Mara schau mal" should not also require finding a menu.
@@ -132,9 +133,16 @@ struct ComposerView: View {
         return Mentions.recipient(in: text, members: model.members)
     }
 
+    /// Dropping only points at something already in the project; nothing is
+    /// copied anywhere. What the index does not know is refused with a beep
+    /// rather than quietly taking away what was attached before.
     private func attach(_ url: URL?) {
         guard let url else { return }
-        attachedNode = model.node(forDroppedURL: url)
+        switch model.resolveDrop(url) {
+        case .project: attachedNode = nil
+        case .node(let node): attachedNode = node
+        case .unknown: NSSound.beep()
+        }
     }
 
     private func send() {

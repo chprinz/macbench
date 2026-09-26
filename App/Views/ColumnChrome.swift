@@ -50,7 +50,7 @@ private struct CrumbButton: View {
             // of its files: the list stays, the stream stops being about one row
             // of it.
             if model.selection == target {
-                model.selectedFile = nil
+                model.selectedNodeID = nil
             } else {
                 model.selection = target
             }
@@ -73,7 +73,7 @@ private struct CrumbButton: View {
     /// holding it is the way back out.
     private var leadsSomewhere: Bool {
         guard let target = crumb.target else { return false }
-        return target != model.selection || model.selectedFile != nil
+        return target != model.selection || model.selectedNodeID != nil
     }
 }
 

@@ -89,19 +89,20 @@ final class AppModel {
             activityDepth = 1
             streamDepth = 1
             filter.searchText = ""
-            selectedFile = nil
+            selectedNodeID = nil
             selectedEntry = nil
             persistSelection()
             refreshDetail()
         }
     }
 
-    /// A file picked inside the current folder. Kept apart from `selection` on
-    /// purpose: clicking a file narrows the stream below the list, it does not
-    /// replace the view or un-highlight the folder in the sidebar.
-    var selectedFile: UUID? {
+    /// A file or a folder picked inside the current folder. Kept apart from
+    /// `selection` on purpose: clicking one narrows the stream below the list, it
+    /// does not replace the view or un-highlight the folder in the sidebar. Going
+    /// into a folder is the double click, and changes `selection` instead.
+    var selectedNodeID: UUID? {
         didSet {
-            guard selectedFile != oldValue else { return }
+            guard selectedNodeID != oldValue else { return }
             keptUnread.removeAll()
             streamDepth = 1
             readHiddenChanges()
@@ -114,14 +115,14 @@ final class AppModel {
     /// changes out. Otherwise nothing could ever put them on screen, and the dot
     /// on the file stayed however often it was clicked.
     private func readHiddenChanges() {
-        guard let selectedFile, let viewer = identity?.member.id else { return }
+        guard let selectedNodeID, let viewer = identity?.member.id else { return }
         let changesAreShown = switch selection {
         case .project, .node: filter.includeSystem
         // Beside the two lists the conversation is shown unfiltered.
         case .activity, .openTasks: true
         }
         guard !isStreamVisible || !changesAreShown else { return }
-        try? store.markChangesRead(nodeID: selectedFile, member: viewer)
+        try? store.markChangesRead(nodeID: selectedNodeID, member: viewer)
     }
 
     /// The row the middle column points at, in the two lists that span projects:
@@ -152,7 +153,7 @@ final class AppModel {
             let file = selectedEntry?.node.flatMap { $0.isPlaceholder ? nil : $0.id }
             // Selecting a task is selecting what it is about: that is what gives
             // the stream its scope and the composer its project.
-            if file != selectedFile { selectedFile = file } else { refreshDetail() }
+            if file != selectedNodeID { selectedNodeID = file } else { refreshDetail() }
         }
     }
     /// Whether the conversation column is showing. It lives here rather than in
@@ -793,7 +794,7 @@ final class AppModel {
         // Not reachable: those two are lists of their own, handled above.
         case .activity, .openTasks: return
         }
-        if let selectedFile { scope = .file(selectedFile) }
+        if let selectedNodeID { scope = streamScope(of: selectedNodeID) }
         // The project picked in Latest activity narrows that list, not this one:
         // here the sidebar has already said which project, and a different one
         // left over from the feed would empty the stream for no visible reason.
@@ -833,8 +834,9 @@ final class AppModel {
            let fresh = searchResults.entries.first(where: { $0.id == current.id }) {
             searchPick = fresh
         }
-        if let file = searchPickFile {
-            timeline = (try? store.timeline(scope: .file(file), filter: streamFilter, viewer: viewer)) ?? []
+        if let picked = searchPickNode {
+            timeline = (try? store.timeline(scope: streamScope(of: picked), filter: streamFilter,
+                                            viewer: viewer)) ?? []
         } else if let projectID = searchPick?.entry.projectID {
             timeline = (try? store.timeline(scope: .project(projectID), filter: streamFilter,
                                             viewer: viewer)) ?? []
@@ -843,10 +845,17 @@ final class AppModel {
         }
     }
 
-    /// The file the conversation column is about, when it is about one.
-    var streamFileID: UUID? { isSearching ? searchPickFile : selectedFile }
+    /// The file or folder the conversation column is about, when it is about one.
+    var streamNodeID: UUID? { isSearching ? searchPickNode : selectedNodeID }
 
-    private var searchPickFile: UUID? {
+    /// A picked folder shows what was said in it and below it, as it does when
+    /// you go into it: picking one and going there must not disagree about what
+    /// the folder's conversation is.
+    private func streamScope(of nodeID: UUID) -> TimelineScope {
+        (try? store.node(id: nodeID))?.isDirectory == true ? .folder(nodeID) : .file(nodeID)
+    }
+
+    private var searchPickNode: UUID? {
         searchPick?.node.flatMap { $0.isPlaceholder ? nil : $0.id }
     }
 
@@ -865,8 +874,8 @@ final class AppModel {
         files = []
         subfolders = []
         breadcrumb = []
-        if let selectedFile {
-            timeline = (try? store.timeline(scope: .file(selectedFile), filter: streamFilter,
+        if let selectedNodeID {
+            timeline = (try? store.timeline(scope: streamScope(of: selectedNodeID), filter: streamFilter,
                                             viewer: viewer)) ?? []
         } else if let projectID = selectedEntry?.entry.projectID {
             timeline = (try? store.timeline(scope: .project(projectID), filter: streamFilter,
@@ -929,9 +938,11 @@ final class AppModel {
             }
             // The file picked inside the folder is the end of the path, and the
             // end of the path is where you already are: it leads nowhere. The
-            // folder before it is the way back out of it.
-            if let selectedFile, let file = try? store.node(id: selectedFile), file.id != node.id {
-                parts.append(Crumb(id: parts.count, name: file.name, target: nil))
+            // folder before it is the way back out of it. A picked folder leads
+            // one step further: into it.
+            if let selectedNodeID, let picked = try? store.node(id: selectedNodeID), picked.id != node.id {
+                parts.append(Crumb(id: parts.count, name: picked.name,
+                                   target: picked.isDirectory ? .node(picked.id) : nil))
             }
             return parts
         }
@@ -1064,25 +1075,35 @@ final class AppModel {
     /// dot moves down to where the news actually is, so the eye is led to the file
     /// rather than being told twice.
     func hasUnread(_ item: TreeItem) -> Bool {
-        marked(item, paths: signals.unreadPaths[item.projectID] ?? [])
+        marked(item, folders: signals.unreadFolders[item.projectID] ?? [])
     }
 
     func hasOpenTasks(_ item: TreeItem) -> Bool {
-        marked(item, paths: signals.openTaskPaths[item.projectID] ?? [])
+        marked(item, folders: signals.openTaskFolders[item.projectID] ?? [])
     }
 
-    private func marked(_ item: TreeItem, paths: [String]) -> Bool {
-        guard !paths.isEmpty else { return false }
+    private func marked(_ item: TreeItem, folders: [String]) -> Bool {
+        guard !folders.isEmpty else { return false }
         let isOpen = expanded.contains(item.id)
-        for path in paths {
-            let directParent = (path as NSString).deletingLastPathComponent
-            if directParent == item.path { return true }
-            if !isOpen, item.path.isEmpty || path.hasPrefix(item.path + "/") { return true }
+        for folder in folders {
+            if folder == item.path { return true }
+            if !isOpen, item.path.isEmpty || folder.hasPrefix(item.path + "/") { return true }
         }
         return false
     }
 
-    func unreadCount(project: UUID) -> Int { signals.unreadPaths[project]?.count ?? 0 }
+    func unreadCount(project: UUID) -> Int { signals.unreadFolders[project]?.count ?? 0 }
+
+    /// What waits in a folder, counted at the folder and below it, for its row
+    /// in the middle column. A file row says what is waiting in it; a folder row
+    /// that said nothing hid everything written about the folder or inside it.
+    func waiting(in folder: Node) -> (unread: Int, openTasks: Int) {
+        func count(_ folders: [String]?) -> Int {
+            (folders ?? []).filter { $0 == folder.relativePath || $0.hasPrefix(folder.relativePath + "/") }.count
+        }
+        return (count(signals.unreadFolders[folder.projectID]),
+                count(signals.openTaskFolders[folder.projectID]))
+    }
 
     // MARK: - The filter above the tree
 
@@ -1112,14 +1133,14 @@ final class AppModel {
     /// down into an open folder, and a filter must not change its mind about a
     /// folder because it was opened.
     func passesSidebarFilter(projectID: UUID, path: String) -> Bool {
-        let paths: [String]
+        let folders: [String]
         switch sidebarFilter {
         case .all: return true
-        case .unread: paths = signals.unreadPaths[projectID] ?? []
-        case .open: paths = signals.openTaskPaths[projectID] ?? []
+        case .unread: folders = signals.unreadFolders[projectID] ?? []
+        case .open: folders = signals.openTaskFolders[projectID] ?? []
         }
-        if path.isEmpty { return !paths.isEmpty }
-        return paths.contains { $0 == path || $0.hasPrefix(path + "/") }
+        if path.isEmpty { return !folders.isEmpty }
+        return folders.contains { $0 == path || $0.hasPrefix(path + "/") }
     }
 
     /// The folder's files, under the same filter. The picked file stays even once
@@ -1129,13 +1150,15 @@ final class AppModel {
     var visibleFiles: [FileListItem] {
         switch sidebarFilter {
         case .all: files
-        case .unread: files.filter { $0.unreadCount > 0 || $0.node.id == selectedFile }
-        case .open: files.filter { $0.openTaskCount > 0 || $0.node.id == selectedFile }
+        case .unread: files.filter { $0.unreadCount > 0 || $0.node.id == selectedNodeID }
+        case .open: files.filter { $0.openTaskCount > 0 || $0.node.id == selectedNodeID }
         }
     }
 
     var visibleSubfolders: [Node] {
-        subfolders.filter { passesSidebarFilter(projectID: $0.projectID, path: $0.relativePath) }
+        // The picked one stays, for the reason the picked file does.
+        subfolders.filter { $0.id == selectedNodeID
+            || passesSidebarFilter(projectID: $0.projectID, path: $0.relativePath) }
     }
 
     // MARK: - Actions
@@ -1163,7 +1186,7 @@ final class AppModel {
         // While searching, the column beside the results is about the result
         // picked, and so is anything written into it.
         if isSearching { return searchPick?.entry.projectID }
-        if let selectedFile, let node = try? store.node(id: selectedFile) { return node.projectID }
+        if let selectedNodeID, let node = try? store.node(id: selectedNodeID) { return node.projectID }
         return switch selection {
         case .project(let id): id
         case .node(let id): (try? store.node(id: id))?.projectID
@@ -1176,17 +1199,26 @@ final class AppModel {
         }
     }
 
-    var selectedFileNode: Node? {
-        guard let file = isSearching ? searchPickFile : selectedFile else { return nil }
-        return try? store.node(id: file)
+    var selectedNode: Node? {
+        guard let picked = isSearching ? searchPickNode : selectedNodeID else { return nil }
+        return try? store.node(id: picked)
+    }
+
+    /// What something written now is about: the file or folder picked, or else
+    /// the folder you are in. Without the folder, a note written inside one went
+    /// to the project and was gone from the stream it was typed under — the
+    /// folder's stream shows what is about the folder, and the project is not.
+    var composerNode: Node? {
+        if let selectedNode { return selectedNode }
+        guard !isSearching, case .node(let id) = selection,
+              let folder = try? store.node(id: id), folder.isDirectory else { return nil }
+        return folder
     }
 
     /// The line the conversation column is about, beside a list that spans
     /// projects: the feed, the tasks, or the search results.
     var contextEntry: TimelineItem? { isSearching ? searchPick : selectedEntry }
 
-    /// Reveals a file in place: points the sidebar at the folder that holds it and
-    /// selects it in the list, so the surrounding context comes along.
     /// A folder named by its path, from a line that only carries the path. Falls
     /// back to the project when the folder has gone since.
     func showFolder(projectID: UUID, relativePath: String) {
@@ -1197,11 +1229,11 @@ final class AppModel {
         }
     }
 
+    /// Reveals a file or folder in place: points the sidebar at the folder that
+    /// holds it and picks it in the list, so the surrounding context comes along.
+    /// A folder is picked like a file, not gone into: the stream beside it is
+    /// then the one the line that led here belongs to.
     func focus(node: Node) {
-        guard !node.isDirectory else {
-            selection = .node(node.id)
-            return
-        }
         let parent = node.parentPath ?? ""
         if parent.isEmpty {
             selection = .project(node.projectID)
@@ -1210,7 +1242,7 @@ final class AppModel {
         } else {
             selection = .project(node.projectID)
         }
-        selectedFile = node.id
+        selectedNodeID = node.id
     }
 
     /// Everything still inside its coalescing window, across the current project.
@@ -1347,16 +1379,30 @@ final class AppModel {
 
     func rootURL(for projectID: UUID) -> URL? { access.url(for: projectID) }
 
-    /// Resolves a file dropped from the Finder back to a node we know about,
-    /// but only inside a watched project — dropping something from elsewhere is
-    /// not an invitation to start watching it.
-    func node(forDroppedURL url: URL) -> Node? {
-        guard let projectID = currentProjectID, let root = access.url(for: projectID) else { return nil }
+    enum Dropped {
+        /// The project folder itself: about the project, not about a file in it.
+        case project
+        case node(Node)
+        /// Outside the project, or something in it the index leaves out.
+        case unknown
+    }
+
+    /// Resolves a file or folder dropped from the Finder back to a node we know
+    /// about, but only inside a watched project — dropping something from
+    /// elsewhere is not an invitation to start watching it.
+    ///
+    /// Through `RelativePath`: a folder arrives with a trailing slash, and cut
+    /// by hand that looked up "Layout/" and found nothing, so dropping a folder
+    /// did nothing at all.
+    func resolveDrop(_ url: URL) -> Dropped {
+        guard let projectID = currentProjectID, let root = access.url(for: projectID) else { return .unknown }
         let rootPath = root.path(percentEncoded: false)
         let dropped = url.path(percentEncoded: false)
-        guard dropped.hasPrefix(rootPath) else { return nil }
-        let relative = String(dropped.dropFirst(rootPath.count)).trimmingPrefix("/")
-        return try? store.node(projectID: projectID, relativePath: String(relative))
+        if RelativePath.normalize(dropped) == RelativePath.normalize(rootPath) { return .project }
+        guard let relative = RelativePath.of(dropped, under: rootPath),
+              let node = try? store.node(projectID: projectID, relativePath: relative)
+        else { return .unknown }
+        return .node(node)
     }
 
     func url(for node: Node) -> URL? {
@@ -1368,7 +1414,13 @@ final class AppModel {
         NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
+    /// A folder opens here, as a double click on its row does: going into it is
+    /// what this app is for, and the Finder is one button further along.
     func open(_ node: Node) {
+        if node.isDirectory {
+            if node.state == .present { selection = .node(node.id) } else { focus(node: node) }
+            return
+        }
         guard let url = url(for: node) else { return }
         NSWorkspace.shared.open(url)
     }
@@ -1447,7 +1499,7 @@ final class AppModel {
 
     /// What the space bar and ⌘Y act on: the file picked in the middle column.
     func toggleQuickLookForSelection() {
-        guard let node = selectedFileNode else { return }
+        guard let node = selectedNode else { return }
         toggleQuickLook(node)
     }
 

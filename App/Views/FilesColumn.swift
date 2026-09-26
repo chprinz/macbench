@@ -159,9 +159,9 @@ struct StreamColumn: View {
     private var entryContext: some View {
         HStack(spacing: 6) {
             if let entry = model.contextEntry {
-                Image(systemName: model.selectedFileNode == nil ? "folder" : "doc.text")
+                Image(systemName: model.selectedNode.map { $0.isDirectory ? "folder" : "doc.text" } ?? "folder")
                     .foregroundStyle(Color.accentColor)
-                Text(model.selectedFileNode?.name ?? projectName(entry))
+                Text(model.selectedNode?.name ?? projectName(entry))
                     .font(.headline)
                     // Two lines rather than a name cut in the middle: these are
                     // "26-09-07 Kunde A Erstgespräch_Zusammenfassung.txt", and
@@ -183,15 +183,15 @@ struct StreamColumn: View {
 
     private var fileOrFolderHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Narrowing the stream to one file changes what everything below means,
-            // so it gets a heading rather than a small chip that is easy to read
-            // past. The way back out is a labelled button, not an × .
-            if let file = model.selectedFileNode {
+            // Narrowing the stream to one file or folder changes what everything
+            // below means, so it gets a heading rather than a small chip that is
+            // easy to read past. The way back out is a labelled button, not an × .
+            if let picked = model.selectedNode {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
-                        Image(systemName: "doc.text")
+                        Image(systemName: picked.isDirectory ? "folder" : "doc.text")
                             .foregroundStyle(Color.accentColor)
-                        Text(file.name)
+                        Text(picked.name)
                             .font(.headline)
                             .lineLimit(2)
                             .truncationMode(.middle)
@@ -200,7 +200,7 @@ struct StreamColumn: View {
                     }
                     // The way back is only a folder when you came from one.
                     Button {
-                        model.selectedFile = nil
+                        model.selectedNodeID = nil
                     } label: {
                         Label("Show the whole folder", systemImage: "arrow.up.left")
                             .font(.caption)
@@ -224,14 +224,18 @@ struct StreamColumn: View {
 
     private var emptyTitle: LocalizedStringKey {
         if model.isSearching {
-            return model.searchPick == nil ? "Pick a result" : "Nothing about this file yet"
+            return model.searchPick == nil ? "Pick a result" : nothingAboutPicked
         }
         return switch model.selection {
-        case .openTasks: model.selectedEntry == nil ? "Pick a task" : "Nothing about this file yet"
-        case .activity: model.selectedEntry == nil ? "Pick an entry" : "Nothing about this file yet"
+        case .openTasks: model.selectedEntry == nil ? "Pick a task" : nothingAboutPicked
+        case .activity: model.selectedEntry == nil ? "Pick an entry" : nothingAboutPicked
         case .project, .node:
-            model.selectedFile == nil ? "No changes yet" : "Nothing about this file yet"
+            model.selectedNodeID == nil ? "No changes yet" : nothingAboutPicked
         }
+    }
+
+    private var nothingAboutPicked: LocalizedStringKey {
+        model.selectedNode?.isDirectory == true ? "Nothing about this folder yet" : "Nothing about this file yet"
     }
 
     private var emptyHint: LocalizedStringKey {
@@ -244,7 +248,7 @@ struct StreamColumn: View {
         case .openTasks, .activity: model.selectedEntry == nil
             ? "Pick one on the left and this shows what was said around it — the file it is about, and the changes to it. An answer is written here too."
             : "Write the first note below."
-        case .project, .node: model.selectedFile == nil
+        case .project, .node: model.selectedNodeID == nil
             ? "Files that were already here were indexed without entries. From now on, every change lands here — quiet ones after they have been gathered for twenty minutes."
             : "Write the first note below."
         }

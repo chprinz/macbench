@@ -36,7 +36,8 @@ someone's head. Newest observations at the top of each section.
   not be fine at a hundred thousand. The tree in particular is rebuilt from
   scratch when only an entry changed.
 - **`Selection.node` covers both files and folders**, so several call sites have
-  to ask which one it is. Splitting it would remove those branches.
+  to ask which one it is. Splitting it would remove those branches. The picked
+  row, `selectedNodeID`, is either too, since a folder can be picked like a file.
 - **`AssigneeFilter.unassigned` is unreachable from the interface.** The store
   supports it and a test covers it; the menu offers only "anyone" or a person,
   because a third entry read as a synonym of the first. If "what has nobody
@@ -47,8 +48,8 @@ someone's head. Newest observations at the top of each section.
 - **Conflict resolution** (after 0.4). iCloud conflict copies are detected and announced;
   they cannot be resolved in the app. `NSFileVersion.unresolvedConflictVersionsOfItem`
   gives the versions, dates and sizes needed to offer a choice.
-- **`#file` to link a file by typing**, the counterpart of `@name`. Dropping a
-  file on the text field already works; typing its name does not.
+- **`#file` to link a file or folder by typing**, the counterpart of `@name`.
+  Dropping one on the text field already works; typing its name does not.
 - **A generated `TODO.md`** in the project folder, so tasks are readable in
   Obsidian or the Finder. Derived, therefore safe to overwrite.
 - **An editor inside the app.** Parked deliberately. See the workflow review for

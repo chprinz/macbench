@@ -60,15 +60,19 @@ enum RowInset {
 /// The way one level down, in the column you are already looking at. It used to
 /// appear only in a folder that had no files of its own, which made the list an
 /// answer to "what is here" that left out half of what is here.
+///
+/// A row like a file's: a click picks it, so the stream beside the list is about
+/// it and what is written goes to it; a double click goes in. The chevron goes
+/// in too, for anyone who has not found the double click yet.
 struct FolderRow: View {
     @Environment(AppModel.self) private var model
     let node: Node
     @State private var isHovering = false
 
     var body: some View {
+        let waiting = model.waiting(in: node)
         Button {
-            model.selection = .node(node.id)
-            model.expanded.insert(.node(node.id))
+            model.selectedNodeID = model.selectedNodeID == node.id ? nil : node.id
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "folder")
@@ -76,20 +80,61 @@ struct FolderRow: View {
                 Text(node.name).lineLimit(1).truncationMode(.middle)
                 Spacer(minLength: 8)
                 ModifiedDate(date: node.contentModifiedAt)
-                Image(systemName: "chevron.right")
-                    .font(.caption2).foregroundStyle(isHovering ? .secondary : .tertiary)
+                // At the folder or anywhere below it: from here, that is all one
+                // place to go and look.
+                if waiting.openTasks > 0 {
+                    Image(systemName: "checkmark.circle")
+                        .imageScale(.small).foregroundStyle(.secondary)
+                }
+                if waiting.unread > 1 {
+                    Text(waiting.unread, format: .number)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(Color.accentColor)
+                }
+                if waiting.unread > 0 {
+                    Circle().fill(Color.accentColor).frame(width: 7, height: 7)
+                }
+                Button(action: goIn) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(isHovering || isSelected ? .secondary : .tertiary)
+                        .frame(width: 16, height: 16)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .help("Open Folder")
             }
+            .controlSize(.small)
             .padding(.horizontal, RowInset.text)
             .padding(.vertical, 7)
-            .background(isHovering ? Color.primary.opacity(0.04) : .clear, in: RowInset.shape)
+            .background(background, in: RowInset.shape)
             .padding(.horizontal, RowInset.edge)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .onHover { isHovering = $0 }
+        .simultaneousGesture(TapGesture(count: 2).onEnded(goIn))
         .contextMenu {
+            StreamMenuButton(isShowingThis: isSelected && model.isStreamVisible,
+                             showTitle: "Show Folder History") {
+                model.selectedNodeID = node.id
+            }
+            Divider()
+            Button("Open Folder", action: goIn)
             Button("Show in Finder") { model.reveal(node) }
         }
+    }
+
+    private var isSelected: Bool { model.selectedNodeID == node.id }
+
+    private var background: Color {
+        if isSelected { return .accentColor.opacity(0.12) }
+        return isHovering ? .primary.opacity(0.04) : .clear
+    }
+
+    private func goIn() {
+        model.selection = .node(node.id)
+        model.expanded.insert(.node(node.id))
     }
 }
 
@@ -101,7 +146,7 @@ struct FileRow: View {
 
     var body: some View {
         Button {
-            model.selectedFile = model.selectedFile == item.node.id ? nil : item.node.id
+            model.selectedNodeID = model.selectedNodeID == item.node.id ? nil : item.node.id
         } label: {
             HStack(spacing: 10) {
                 preview
@@ -170,7 +215,7 @@ struct FileRow: View {
         // gesture that showed and hid a column instead — which is what the
         // row's menu is for. Lines about a file open it the same way.
         .simultaneousGesture(TapGesture(count: 2).onEnded {
-            model.selectedFile = item.node.id
+            model.selectedNodeID = item.node.id
             model.open(item.node)
         })
         .contextMenu { FileMenu(node: item.node, offersStream: true) }
@@ -180,7 +225,7 @@ struct FileRow: View {
         }
     }
 
-    private var isSelected: Bool { model.selectedFile == item.node.id }
+    private var isSelected: Bool { model.selectedNodeID == item.node.id }
 
     private var spansProjects: Bool {
         if case .activity = model.selection { return true }
@@ -247,9 +292,9 @@ struct FileMenu: View {
 
     var body: some View {
         if offersStream {
-            StreamMenuButton(isShowingThis: model.selectedFile == node.id && model.isStreamVisible,
+            StreamMenuButton(isShowingThis: model.selectedNodeID == node.id && model.isStreamVisible,
                              showTitle: "Show File History") {
-                model.selectedFile = node.id
+                model.selectedNodeID = node.id
             }
             Divider()
         }

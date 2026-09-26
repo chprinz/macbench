@@ -24,7 +24,7 @@ struct FileTag: View {
             model.focus(node: node)
         } label: {
             Label(shortenedTo.map { node.name.middleShortened(to: $0) } ?? node.name,
-                  systemImage: "doc")
+                  systemImage: node.isDirectory ? "folder" : "doc")
                 .font(.caption2)
                 .lineLimit(1)
                 .truncationMode(.middle)

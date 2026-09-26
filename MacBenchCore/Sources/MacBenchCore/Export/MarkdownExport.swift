@@ -45,7 +45,8 @@ public struct MarkdownExport: Sendable {
         var parts: [String] = ["**\(time)**"]
         parts.append(item.author?.name ?? "unknown")
         if let node = item.node, !node.isPlaceholder {
-            parts.append("`\(node.relativePath)`")
+            // The slash, as `ls -F` has it: a folder is not a file without an extension.
+            parts.append("`\(node.relativePath)\(node.isDirectory ? "/" : "")`")
         }
         if !item.categories.isEmpty {
             parts.append(item.categories.map { "#\($0.name)" }.joined(separator: " "))

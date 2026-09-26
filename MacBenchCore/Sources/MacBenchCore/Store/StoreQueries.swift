@@ -73,9 +73,14 @@ public struct FileListItem: Sendable, Hashable, Identifiable {
 
 /// Where the unread and open-task dots belong. Paths, not counts per folder: the
 /// tree aggregates them itself, which keeps a deep structure to one query.
+///
+/// Each path is the folder the entry belongs in, not the node it is about: the
+/// folder holding a file, or the folder itself when somebody wrote about a
+/// folder. Given the folder's own path, the tree could not tell it from a file
+/// of that name and put the dot one level up, on the folder around it.
 public struct ActivitySignals: Sendable, Hashable {
-    public var unreadPaths: [UUID: [String]] = [:]
-    public var openTaskPaths: [UUID: [String]] = [:]
+    public var unreadFolders: [UUID: [String]] = [:]
+    public var openTaskFolders: [UUID: [String]] = [:]
     public var unreadTotal: Int = 0
     public var openTaskTotal: Int = 0
     public init() {}
@@ -95,6 +100,14 @@ public struct SearchResults: Sendable {
 ///
 /// A notice is as loud as a message: somebody joining is not a file change,
 /// happens once, and cannot be folded into a quieter line.
+/// The folder an entry's dot belongs in: see `ActivitySignals`. The project
+/// itself, where the entry is about no file at all.
+let homeFolder = """
+    CASE WHEN n.id IS NULL THEN ''
+         WHEN n.isDirectory = 1 THEN n.relativePath
+         ELSE n.parentPath END
+    """
+
 let loudEnoughToShow = """
     (e.kind = 'message'
      OR e.notice IS NOT NULL
@@ -321,7 +334,7 @@ extension Store {
         try read { db in
             var signals = ActivitySignals()
             let unread = try Row.fetchAll(db, sql: """
-                SELECT e.projectID AS pid, COALESCE(n.relativePath, '') AS path
+                SELECT e.projectID AS pid, \(homeFolder) AS path
                 FROM entry e
                 JOIN project p ON p.id = e.projectID AND p.isArchived = 0
                 LEFT JOIN node n ON n.id = e.nodeID
@@ -332,12 +345,12 @@ extension Store {
                 """, arguments: [viewer, viewer])
             for row in unread {
                 guard let pid: UUID = row["pid"] else { continue }
-                signals.unreadPaths[pid, default: []].append(row["path"] ?? "")
+                signals.unreadFolders[pid, default: []].append(row["path"] ?? "")
                 signals.unreadTotal += 1
             }
 
             let tasks = try Row.fetchAll(db, sql: """
-                SELECT e.projectID AS pid, COALESCE(n.relativePath, '') AS path
+                SELECT e.projectID AS pid, \(homeFolder) AS path
                 FROM entry e
                 JOIN project p ON p.id = e.projectID AND p.isArchived = 0
                 LEFT JOIN node n ON n.id = e.nodeID
@@ -345,7 +358,7 @@ extension Store {
                 """)
             for row in tasks {
                 guard let pid: UUID = row["pid"] else { continue }
-                signals.openTaskPaths[pid, default: []].append(row["path"] ?? "")
+                signals.openTaskFolders[pid, default: []].append(row["path"] ?? "")
                 signals.openTaskTotal += 1
             }
             return signals
