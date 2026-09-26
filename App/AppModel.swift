@@ -83,6 +83,10 @@ final class AppModel {
     var selection: Selection = .activity {
         didSet {
             guard selection != oldValue else { return }
+            // Before the pick is cleared below: the place being left includes it.
+            if !isRestoring {
+                leave(Place(selection: oldValue, node: selectedNodeID, entry: selectedEntry?.id))
+            }
             // Only for the list that was open at launch.
             if !isRestoring { entryToRestore = nil }
             keptUnread.removeAll()
@@ -592,6 +596,77 @@ final class AppModel {
         for task in statusTasks.values { task.cancel() }
         observationCancellable?.cancel()
         access.releaseAll()
+    }
+
+    // MARK: - Back and forward
+
+    /// Where you were: the view, and the row picked in it. A step is a change
+    /// of view — going into a folder, jumping to a file from a task — and not
+    /// every row clicked on the way, which is how the Finder counts too. The
+    /// row comes back with the view, because it is usually what you went back
+    /// for.
+    ///
+    /// Not kept across launches: the view you left is already restored, and a
+    /// history reaching into yesterday is a list of places that may be gone.
+    struct Place: Hashable {
+        var selection: Selection
+        var node: UUID?
+        var entry: UUID?
+    }
+
+    private(set) var backStack: [Place] = []
+    private(set) var forwardStack: [Place] = []
+    private var isTravelling = false
+    private static let historyLimit = 100
+
+    var canGoBack: Bool { !backStack.isEmpty }
+    var canGoForward: Bool { !forwardStack.isEmpty }
+
+    private var here: Place {
+        Place(selection: selection, node: selectedNodeID, entry: selectedEntry?.id)
+    }
+
+    private func leave(_ place: Place) {
+        guard !isTravelling else { return }
+        backStack.append(place)
+        if backStack.count > Self.historyLimit { backStack.removeFirst() }
+        forwardStack.removeAll()
+    }
+
+    func goBack() {
+        let from = here
+        guard let place = pop(&backStack) else { return }
+        forwardStack.append(from)
+        travel(to: place)
+    }
+
+    func goForward() {
+        let from = here
+        guard let place = pop(&forwardStack) else { return }
+        backStack.append(from)
+        travel(to: place)
+    }
+
+    /// The nearest place that is still there. A folder deleted or a project
+    /// removed since is stepped over, not shown as an empty view.
+    private func pop(_ stack: inout [Place]) -> Place? {
+        while let place = stack.popLast() {
+            if exists(place.selection) { return place }
+        }
+        return nil
+    }
+
+    private func travel(to place: Place) {
+        isTravelling = true
+        defer { isTravelling = false }
+        // Results over the list would hide where you went.
+        searchText = ""
+        selection = place.selection
+        if let id = place.entry, let item = (tasks + activity).first(where: { $0.id == id }) {
+            selectedEntry = item
+        } else if let node = place.node, (try? store.node(id: node)) != nil {
+            selectedNodeID = node
+        }
     }
 
     // MARK: - Remembering where you were

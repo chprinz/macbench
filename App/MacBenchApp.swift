@@ -254,6 +254,14 @@ struct MacBenchCommands: Commands {
             Button("Latest activity") { model.selection = .activity }
                 .keyboardShortcut(Shortcut.key(String(localized: "shortcut.activity", defaultValue: "l")), modifiers: [.command, .shift])
             Divider()
+            // ⌘[ and ⌘], as in the Finder and Safari.
+            Button("Back") { model.goBack() }
+                .keyboardShortcut("[", modifiers: .command)
+                .disabled(!model.canGoBack)
+            Button("Forward") { model.goForward() }
+                .keyboardShortcut("]", modifiers: .command)
+                .disabled(!model.canGoForward)
+            Divider()
         }
         CommandGroup(after: .toolbar) {
             // The space bar does this too, on the row the list points at. ⌘Y is

@@ -67,6 +67,19 @@ struct RootView: View {
                                 .inspectorColumnWidth(min: 280, ideal: Layout.streamWidth, max: 620)
                         }
                         .toolbar {
+                            // Where the Finder has them, left of the title.
+                            ToolbarItemGroup(placement: .navigation) {
+                                Button { model.goBack() } label: {
+                                    Label("Back", systemImage: "chevron.left")
+                                }
+                                .disabled(!model.canGoBack)
+                                .help("Back to where you were before")
+                                Button { model.goForward() } label: {
+                                    Label("Forward", systemImage: "chevron.right")
+                                }
+                                .disabled(!model.canGoForward)
+                                .help("Forward again")
+                            }
                             // Principal, not `.searchable`: SwiftUI's search field
                             // lands wherever the split view feels like putting it,
                             // which was on top of the sidebar. This one sits over
@@ -139,8 +152,9 @@ struct SearchField: View {
         .frame(width: min(520, max(140, room - Self.titleRoom)))
     }
 
-    /// The window title and the margins around it, left of the field.
-    private static let titleRoom: CGFloat = 190
+    /// The window title, the back and forward buttons before it, and the
+    /// margins around them, left of the field.
+    private static let titleRoom: CGFloat = 260
 }
 
 /// Sync problems are shown, never swallowed. "Nothing new" and "we could not

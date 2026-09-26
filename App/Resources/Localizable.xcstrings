@@ -731,6 +731,17 @@
         }
       }
     },
+    "Back to where you were before": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück dahin, wo du vorher warst"
+          }
+        }
+      }
+    },
     "Berry": {
       "extractionState": "manual",
       "localizations": {
@@ -1375,6 +1386,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Für dich"
+          }
+        }
+      }
+    },
+    "Forward": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorwärts"
+          }
+        }
+      }
+    },
+    "Forward again": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wieder vorwärts"
           }
         }
       }
