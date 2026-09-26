@@ -26,14 +26,24 @@ struct SidebarView: View {
                         HStack {
                             Text("Projects")
                             Spacer()
+                            // A button that looks like one, level with the right
+                            // edge of the filter below. A bare plus against the
+                            // sidebar's border was the way to add a project, and
+                            // it was being missed.
                             Button {
                                 if let url = FolderPicker.chooseProjectFolder() {
                                     Task { await model.addProject(url: url) }
                                 }
                             } label: {
                                 Image(systemName: "plus")
+                                    .font(.callout.weight(.semibold))
+                                    .frame(width: 22, height: 22)
+                                    .background(.quaternary, in: .circle)
+                                    .contentShape(.circle)
                             }
-                            .buttonStyle(.borderless)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.primary)
+                            .padding(.trailing, 6)
                             .help("Add a project folder")
                         }
                         // Sits above the tree and narrows what is shown. It never

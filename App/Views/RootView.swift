@@ -103,6 +103,7 @@ struct RootView: View {
                         }
                 }
                 .overlay(alignment: .top) { BannerStack() }
+                .optionArrowHistory()
 
             }
         }
@@ -149,6 +150,9 @@ struct SearchField: View {
         // whatever the column had, so over a narrow column it ran into the
         // messages and pushed their button off the window. It is told what the
         // column leaves beside the title instead.
+        // Off the capsule's edge: flush against it, the glass read as cut off.
+        .padding(.leading, 8)
+        .padding(.trailing, 4)
         .frame(width: min(520, max(140, room - Self.titleRoom)))
     }
 
